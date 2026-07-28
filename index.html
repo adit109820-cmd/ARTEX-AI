@@ -6,7 +6,6 @@
     <title>Artex AI</title>
     
     <link rel="stylesheet" href="/style.css">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 </head>
 <body>
@@ -15,16 +14,23 @@
         <div class="sidebar-backdrop"></div>
 
         <aside class="sidebar">
-            <div class="sidebar-header">
-                <button class="new-chat"><span>+</span> New Chat</button>
+            <div class="sidebar-brand">
+                <h1 class="brand-title">Artex AI</h1>
+                <div class="online-status">
+                    <span class="status-dot"></span> Online
+                </div>
             </div>
+
+            <button class="new-chat">+ New Chat</button>
+
+            <div class="chat-section-label">Today's Chats</div>
             <div id="chat-list" class="chat-list"></div>
         </aside>
 
         <main class="main-content">
             <header class="top-bar">
                 <button class="menu-btn" aria-label="Toggle Sidebar">☰</button>
-                <div class="header-title">Artex AI</div>
+                <h2 class="header-title">Artex AI</h2>
             </header>
 
             <div class="chat-box"></div>
@@ -32,8 +38,8 @@
             <div class="input-container">
                 <div class="input-area">
                     <textarea placeholder="Ask Artex AI something..." rows="1"></textarea>
-                    <button id="send-btn" title="Send message">➔</button>
-                    <button class="stop-btn" style="display: none;" title="Stop generation">■</button>
+                    <button id="send-btn" title="Send">Send</button>
+                    <button class="stop-btn" style="display: none;" title="Stop">Stop</button>
                 </div>
             </div>
         </main>
@@ -41,7 +47,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-
     <script src="/script.js"></script>
 </body>
 </html>
