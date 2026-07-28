@@ -1,34 +1,30 @@
-const API = {
-    CHAT: "/chat",
-    TITLE: "/title"
-};
-
-let currentController = null;
-
 document.addEventListener("DOMContentLoaded", () => {
-    const chatBox = document.querySelector(".chat-box");
-    const textarea = document.querySelector("textarea");
+    const chatBox = document.getElementById("chat-box");
+    const welcomeScreen = document.getElementById("welcome-screen");
+    const userInput = document.getElementById("user-input");
     const sendBtn = document.getElementById("send-btn");
-    const stopBtn = document.querySelector(".stop-btn");
-    const newChatBtn = document.querySelector(".new-chat");
-    const menuBtn = document.querySelector(".menu-btn");
-    const sidebar = document.querySelector(".sidebar");
-    const backdrop = document.querySelector(".sidebar-backdrop");
+    const stopBtn = document.getElementById("stop-btn");
+    const newChatBtn = document.getElementById("new-chat");
+    const menuBtn = document.getElementById("menu-btn");
+    const sidebar = document.getElementById("sidebar");
+    const backdrop = document.getElementById("backdrop");
 
-    // Textarea Auto Height
-    textarea.addEventListener("input", () => {
-        textarea.style.height = "auto";
-        textarea.style.height = Math.min(textarea.scrollHeight, 120) + "px";
+    let currentController = null;
+
+    // Auto Resize Textarea
+    userInput.addEventListener("input", () => {
+        userInput.style.height = "auto";
+        userInput.style.height = Math.min(userInput.scrollHeight, 120) + "px";
     });
 
-    textarea.addEventListener("keydown", (e) => {
+    userInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             sendMessage();
         }
     });
 
-    if (sendBtn) sendBtn.addEventListener("click", sendMessage);
+    sendBtn.addEventListener("click", sendMessage);
 
     if (stopBtn) {
         stopBtn.addEventListener("click", () => {
@@ -39,40 +35,46 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    if (menuBtn && sidebar && backdrop) {
-        menuBtn.addEventListener("click", () => sidebar.classList.toggle("show"));
-        backdrop.addEventListener("click", () => sidebar.classList.remove("show"));
-    }
+    // Sidebar Controls
+    menuBtn.addEventListener("click", () => {
+        sidebar.classList.toggle("show");
+        backdrop.classList.toggle("show");
+    });
 
-    if (newChatBtn) {
-        newChatBtn.addEventListener("click", () => {
-            chatBox.innerHTML = "";
-            textarea.value = "";
-            textarea.style.height = "auto";
-        });
-    }
+    backdrop.addEventListener("click", () => {
+        sidebar.classList.remove("show");
+        backdrop.classList.remove("show");
+    });
+
+    newChatBtn.addEventListener("click", () => {
+        chatBox.innerHTML = "";
+        chatBox.appendChild(welcomeScreen);
+        welcomeScreen.style.display = "block";
+        userInput.value = "";
+        userInput.style.height = "auto";
+    });
 
     async function sendMessage() {
-        const text = textarea.value.trim();
+        const text = userInput.value.trim();
         if (!text) return;
 
+        if (welcomeScreen) welcomeScreen.style.display = "none";
+
         appendMessage("user", text);
-        textarea.value = "";
-        textarea.style.height = "auto";
+        userInput.value = "";
+        userInput.style.height = "auto";
 
         toggleButtons(true);
-
         const botMsgDiv = appendMessage("bot", "Thinking...");
+
         currentController = new AbortController();
 
         try {
-            const response = await fetch(`${API.CHAT}?message=${encodeURIComponent(text)}`, {
+            const response = await fetch(`/chat?message=${encodeURIComponent(text)}`, {
                 signal: currentController.signal
             });
 
-            if (!response.ok) {
-                throw new Error(`Server Status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             botMsgDiv.innerHTML = "";
             const reader = response.body.getReader();
@@ -83,8 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const chunk = decoder.decode(value, { stream: true });
-                fullText += chunk;
+                fullText += decoder.decode(value, { stream: true });
 
                 if (window.marked) {
                     botMsgDiv.innerHTML = marked.parse(fullText);
@@ -97,9 +98,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         } catch (error) {
             if (error.name === 'AbortError') {
-                botMsgDiv.innerHTML += " <br><em>[Stopped]</em>";
+                botMsgDiv.innerHTML += "<br><em>[Stopped]</em>";
             } else {
-                botMsgDiv.innerHTML = `<span style="color: #f87171;">⚠️ ${error.message}. Connection failed.</span>`;
+                botMsgDiv.innerHTML = `<span style="color: #f87171;">⚠️ Connection Error: ${error.message}</span>`;
             }
         } finally {
             toggleButtons(false);
@@ -109,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function appendMessage(role, text) {
         const div = document.createElement("div");
-        div.className = role === "user" ? "user-message" : "bot-message";
+        div.className = role === "user" ? "user-msg" : "bot-msg";
         div.textContent = text;
         chatBox.appendChild(div);
         chatBox.scrollTop = chatBox.scrollHeight;
@@ -117,8 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function toggleButtons(isGenerating) {
-        if (sendBtn) sendBtn.style.display = isGenerating ? "none" : "block";
-        if (stopBtn) stopBtn.style.display = isGenerating ? "block" : "none";
+        sendBtn.style.display = isGenerating ? "none" : "flex";
+        stopBtn.style.display = isGenerating ? "flex" : "none";
     }
 });
-            
