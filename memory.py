@@ -1,18 +1,19 @@
-chat_history = []
+history = []
 
 
-def add_message(role, text):
-    chat_history.append({"role": role, "content": text})
-
-    # Last 20 messages memory
-    if len(chat_history) > 20:
-        chat_history.pop(0)
+def add_message(role: str, content: str):
+    global history
+    history.append({"role": role, "content": content})
+    # Context window: Keep last 10 messages only
+    if len(history) > 10:
+        history = history[-10:]
 
 
 def get_history():
-    return chat_history
+    return history
 
 
 def clear_history():
-    chat_history.clear()
+    global history
+    history = []
     
