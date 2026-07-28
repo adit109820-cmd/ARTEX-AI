@@ -17,11 +17,6 @@ app.add_middleware(
 )
 
 
-# ===========================================
-# Frontend Direct File Serving (Fixes GUI)
-# ===========================================
-
-
 @app.get("/")
 def home():
     return FileResponse("index.html")
@@ -35,11 +30,6 @@ def get_css():
 @app.get("/script.js")
 def get_js():
     return FileResponse("script.js", media_type="application/javascript")
-
-
-# ===========================================
-# Backend API Routes
-# ===========================================
 
 
 @app.get("/chat")
