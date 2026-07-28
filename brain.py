@@ -1,7 +1,7 @@
 from datetime import datetime
 
-def basic_reply(message):
 
+def basic_reply(message):
     text = message.lower().strip()
 
     if text in ["hi", "hello", "hey"]:
@@ -29,7 +29,12 @@ I'm here to help with coding, learning, writing, and solving problems."""
     elif text == "bye":
         return "Goodbye Boss! Have a great day."
 
+    # Simple Safe Math Calculation
     try:
-        return f"Answer: {eval(text)}"
-    except:
+        allowed = set("0123456789+-*/(). ")
+        if set(text).issubset(allowed) and any(c.isdigit() for c in text):
+            return f"Answer: {eval(text)}"
         return None
+    except Exception:
+        return None
+        
