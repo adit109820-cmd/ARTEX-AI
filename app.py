@@ -1,7 +1,9 @@
 import time
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from ai import ask_ai, ask_ai_text
 from brain import basic_reply
@@ -17,14 +19,13 @@ app.add_middleware(
 )
 
 
+# 1. Main Link par Index.html Open Hoga
 @app.get("/")
 def home():
-    return {
-        "status": "online",
-        "message": "Welcome Boss! Artex AI Backend is Running.",
-    }
+    return FileResponse("index.html")
 
 
+# 2. Chat Streaming API
 @app.get("/chat")
 def chat(message: str):
     reply = basic_reply(message)
@@ -39,17 +40,7 @@ def chat(message: str):
     return StreamingResponse(ask_ai(message), media_type="text/plain")
 
 
-@app.get("/test")
-def test():
-    def generate():
-        words = ["Hello ", "Boss! ", "This ", "is ", "real ", "streaming."]
-        for word in words:
-            yield word
-            time.sleep(0.5)
-
-    return StreamingResponse(generate(), media_type="text/plain")
-
-
+# 3. Chat Title Generator API
 @app.get("/title")
 def title(message: str):
     prompt = f"""
@@ -61,4 +52,8 @@ User Message:
 Return only the title.
 """
     return {"title": ask_ai_text(prompt)}
-    
+
+
+# 4. CSS, JS aur baaki Static Files serve karne ke liye
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
+
