@@ -1,38 +1,44 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Artex AI</title>
     <link rel="stylesheet" href="/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-    <div class="app-container">
-        <aside class="sidebar">
-            <button class="new-chat">+ New Chat</button>
-            <div class="chat-history-list"></div>
-        </aside>
-        <div class="sidebar-backdrop"></div>
+    <div class="app">
+        <div class="backdrop" id="backdrop"></div>
 
-        <main class="main-content">
-            <header class="top-header">
-                <button class="menu-btn">☰</button>
-                <h1 class="app-title">Artex AI</h1>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat-btn" id="new-chat">+ New Chat</button>
+            </div>
+            <div class="history-list"></div>
+            <div class="sidebar-footer">
+                <p>Created by <strong>Aditya Yadav</strong></p>
+            </div>
+        </aside>
+
+        <main class="main">
+            <header class="header">
+                <button class="menu-btn" id="menu-btn">☰</button>
+                <h1>Artex AI</h1>
             </header>
 
-            <div class="chat-box">
-                <div class="welcome-screen">
-                    <h2>Welcome to Artex AI 🚀</h2>
-                    <p>How can I help you today?</p>
+            <div class="chat-container" id="chat-box">
+                <div class="welcome-box" id="welcome-screen">
+                    <h2>Artex AI me aapka swagat hai 🚀</h2>
+                    <p>Aaj main aapki kya madad kar sakta hoon?</p>
                 </div>
             </div>
 
-            <div class="input-container">
-                <div class="input-box">
-                    <textarea placeholder="Message Artex AI..." rows="1"></textarea>
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <textarea id="user-input" placeholder="Artex AI se kuch bhi poochein..." rows="1"></textarea>
                     <button id="send-btn" title="Send">➔</button>
-                    <button class="stop-btn" style="display: none;" title="Stop">⏹</button>
+                    <button id="stop-btn" style="display: none;" title="Stop">⏹</button>
                 </div>
             </div>
         </main>
