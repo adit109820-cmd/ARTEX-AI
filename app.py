@@ -21,13 +21,6 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL_NAME = "meta-llama/llama-3.2-1b-instruct:free"
 
 
-def add_to_history(role: str, content: str):
-    global chat_history
-    chat_history.append({"role": role, "content": content})
-    if len(chat_history) > 10:
-        chat_history = chat_history[-10:]
-
-
 def get_quick_reply(text: str):
     msg = text.strip().lower()
     if msg in ["hi", "hello", "hey", "hii", "hlo"]:
@@ -52,15 +45,15 @@ async def generate_ai_stream(user_message: str):
     api_key = os.getenv("API_KEY", "").strip()
 
     if not api_key:
-        yield "⚠️ Error: OpenRouter API Key nahi mili! Render Dashboard -> Environment -> Add 'API_KEY'."
+        yield "⚠️ Error: Render Dashboard me 'API_KEY' add karein."
         return
 
-    add_to_history("user", user_message)
+    chat_history.append({"role": "user", "content": user_message})
 
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://artex-ai.onrender.com",
+        "HTTP-Referer": "https://artex-ai-pljy.onrender.com",
         "X-Title": "Artex AI",
     }
 
@@ -71,7 +64,7 @@ async def generate_ai_stream(user_message: str):
                 "role": "system",
                 "content": "You are Artex AI, an intelligent assistant developed by Aditya Yadav.",
             },
-            *chat_history,
+            *chat_history[-10:],
         ],
         "stream": True,
     }
@@ -107,13 +100,10 @@ async def generate_ai_stream(user_message: str):
                     except Exception:
                         continue
     except Exception as e:
-        yield f"⚠️ Connection Error: {str(e)}"
+        yield f"⚠️ Error: {str(e)}"
 
     if full_response:
-        add_to_history("assistant", full_response)
-
-
-# --- ROUTES ---
+        chat_history.append({"role": "assistant", "content": full_response})
 
 
 @app.get("/chat")
@@ -138,5 +128,4 @@ async def serve_home():
     return FileResponse("index.html")
 
 
-# Mount all static assets (CSS, JS, images)
 app.mount("/", StaticFiles(directory=".", html=True), name="static")
