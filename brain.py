@@ -1,40 +1,23 @@
-from datetime import datetime
+def basic_reply(message: str):
+    msg = message.strip().lower()
 
+    if msg in ["hi", "hello", "hey", "hii", "hlo"]:
+        return "Hello Boss! 👋 Main **Artex AI** hoon. Aaj main aapki kya madad kar sakta hoon?"
 
-def basic_reply(message):
-    text = message.lower().strip()
+    elif any(
+        phrase in msg
+        for phrase in [
+            "who created you",
+            "who made you",
+            "kisine banaya",
+            "creator",
+            "owner",
+        ]
+    ):
+        return "Mujhe **Aditya Yadav** ne invent aur develop kiya hai! 🚀"
 
-    if text in ["hi", "hello", "hey"]:
-        return "Hello Boss! 👋"
+    elif msg in ["kaise ho", "how are you", "how r u"]:
+        return "Main bilkul badhiya hoon! Aap bataiye, aaj kya plan hai?"
 
-    elif text == "how are you":
-        return "I'm doing great! How can I help you today?"
-
-    elif text == "who are you":
-        return """I am Artex AI, your personal AI assistant.
-
-Designed and developed by Aditya Yadav.
-
-I'm here to help with coding, learning, writing, and solving problems."""
-
-    elif text == "time":
-        return "Current Time: " + datetime.now().strftime("%I:%M %p")
-
-    elif text == "date":
-        return "Today's Date: " + datetime.now().strftime("%d-%m-%Y")
-
-    elif text == "day":
-        return "Today is " + datetime.now().strftime("%A")
-
-    elif text == "bye":
-        return "Goodbye Boss! Have a great day."
-
-    # Simple Safe Math Calculation
-    try:
-        allowed = set("0123456789+-*/(). ")
-        if set(text).issubset(allowed) and any(c.isdigit() for c in text):
-            return f"Answer: {eval(text)}"
-        return None
-    except Exception:
-        return None
-        
+    return None
+    
