@@ -1,63 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Artex AI</title>
+    
+    <link rel="stylesheet" href="/style.css">
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 </head>
-
 <body>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
+    <div class="app-container">
+        <div class="sidebar-backdrop"></div>
 
-        <div class="logo">
-            <h2>Artex AI</h2>
-        </div>
-
-        <button class="new-chat">+ New Chat</button>
-
-        <div class="history">
-            <p>Today's Chats</p>
-        </div>
-
-    </aside>
-
-    <!-- Main Chat Area -->
-    <main class="chat-container">
-
-        <!-- Header -->
-        <header class="top-bar">
-            <h1>Artex AI</h1>
-        </header>
-
-        <!-- Messages -->
-        <section class="chat-box">
-
-            <div class="bot-message">
-                Hello Boss! 👋
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat"><span>+</span> New Chat</button>
             </div>
+            <div id="chat-list" class="chat-list"></div>
+        </aside>
 
-        </section>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" aria-label="Toggle Sidebar">☰</button>
+                <div class="header-title">Artex AI</div>
+            </header>
 
-        <!-- Input -->
-        <div class="input-area">
+            <div class="chat-box"></div>
 
-            <input
-                type="text"
-                placeholder="Message Artex AI...">
+            <div class="input-container">
+                <div class="input-area">
+                    <textarea placeholder="Ask Artex AI something..." rows="1"></textarea>
+                    <button id="send-btn" title="Send message">➔</button>
+                    <button class="stop-btn" style="display: none;" title="Stop generation">■</button>
+                </div>
+            </div>
+        </main>
+    </div>
 
-            <button>Send</button>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
-        </div>
-
-    </main>
-
-    <script src="script.js"></script>
-
+    <script src="/script.js"></script>
 </body>
-
 </html>
