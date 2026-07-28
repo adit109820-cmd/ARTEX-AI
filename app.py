@@ -2,7 +2,7 @@ import time
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from ai import ask_ai, ask_ai_text
@@ -19,13 +19,13 @@ app.add_middleware(
 )
 
 
-# 1. Main Link par Index.html Open Hoga
+# Main Web UI Serve karne ke liye
 @app.get("/")
 def home():
     return FileResponse("index.html")
 
 
-# 2. Chat Streaming API
+# Chat Streaming API Route
 @app.get("/chat")
 def chat(message: str):
     reply = basic_reply(message)
@@ -40,20 +40,24 @@ def chat(message: str):
     return StreamingResponse(ask_ai(message), media_type="text/plain")
 
 
-# 3. Chat Title Generator API
+# Chat Title Generator API Route
 @app.get("/title")
 def title(message: str):
-    prompt = f"""
-Generate a short chat title (maximum 5 words).
-
-User Message:
-{message}
-
-Return only the title.
-"""
+    prompt = f"Generate a short chat title (maximum 5 words).\n\nUser Message:\n{message}\n\nReturn only the title."
     return {"title": ask_ai_text(prompt)}
 
 
-# 4. CSS, JS aur baaki Static Files serve karne ke liye
-app.mount("/", StaticFiles(directory=".", html=True), name="static")
+# Test Route for Stream Verification
+@app.get("/test")
+def test():
+    def generate():
+        words = ["Hello ", "Boss! ", "This ", "is ", "real ", "streaming."]
+        for word in words:
+            yield word
+            time.sleep(0.5)
 
+    return StreamingResponse(generate(), media_type="text/plain")
+
+
+# Static Files (CSS/JS) Serve Karne Ke Liye (Aakhir me hi rakhein)
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
