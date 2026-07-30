@@ -9,6 +9,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
   <style>
     :root {
       --primary-gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
@@ -142,7 +146,6 @@
     .dots-btn { background: none; border: none; color: var(--text-sub); font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: color 0.2s; }
     .dots-btn:hover { color: #ffffff; }
 
-    /* SETTINGS BUTTON HIDDEN AS REQUESTED */
     .settings-btn { display: none !important; }
 
     /* CONTEXT MENU */
@@ -187,8 +190,8 @@
 
     /* CHAT BUBBLES */
     .msg { 
-      max-width: 82%; padding: 16px 22px; font-size: 14.5px; line-height: 1.65; 
-      border-radius: 22px; white-space: pre-wrap; word-break: break-word;
+      max-width: 85%; padding: 16px 22px; font-size: 14.5px; line-height: 1.65; 
+      border-radius: 22px; word-break: break-word;
       animation: msgPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
     @keyframes msgPop {
@@ -198,11 +201,63 @@
     .user-msg { 
       align-self: flex-end; background: var(--primary-gradient); 
       color: #ffffff; border-bottom-right-radius: 6px; box-shadow: 0 10px 28px var(--primary-glow);
+      white-space: pre-wrap;
     }
     .ai-msg { 
       align-self: flex-start; background: rgba(255, 255, 255, 0.035); 
       backdrop-filter: blur(20px); border: 1px solid var(--glass-border); 
       color: #f1f5f9; border-bottom-left-radius: 6px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    /* MARKDOWN STYLING FOR AI RESPONSES */
+    .ai-msg p { margin-bottom: 10px; }
+    .ai-msg p:last-child { margin-bottom: 0; }
+    .ai-msg ul, .ai-msg ol { margin: 10px 0 10px 20px; }
+    .ai-msg li { margin-bottom: 4px; }
+    .ai-msg h1, .ai-msg h2, .ai-msg h3 { margin: 14px 0 8px 0; color: #38bdf8; }
+    
+    /* CODE BLOCK STYLING WITH COPY BUTTON */
+    .ai-msg pre {
+      background: #1e1e2e !important;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      padding: 14px;
+      margin: 14px 0;
+      overflow-x: auto;
+      position: relative;
+    }
+    .ai-msg code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13.5px;
+    }
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 8px 14px;
+      border-radius: 10px 10px 0 0;
+      margin: -14px -14px 12px -14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .copy-code-btn {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .copy-code-btn:hover {
+      background: rgba(56, 189, 248, 0.3);
+      color: #ffffff;
     }
 
     /* INPUT CONTAINER */
@@ -316,8 +371,7 @@
   </div>
 
   <script>
-    let apiKey = localStorage.getItem('ARTEX_OPENROUTER_KEY') || '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';
-
+    let apiKey = localStorage.getItem('ARTEX_OPENROUTER_KEY') || '';
     let chats = JSON.parse(localStorage.getItem('ARTEX_CHATS')) || [
       {
         id: 'chat-1',
@@ -362,10 +416,44 @@
       currentChat.messages.forEach(msg => {
         const bubble = document.createElement('div');
         bubble.className = `msg ${msg.sender === 'user' ? 'user-msg' : 'ai-msg'}`;
-        bubble.innerText = msg.text;
+        
+        if (msg.sender === 'user') {
+          bubble.innerText = msg.text;
+        } else {
+          // Parse Markdown for AI Response
+          bubble.innerHTML = marked.parse(msg.text);
+
+          // Code Block Syntax Highlighting + Copy Button Processing
+          bubble.querySelectorAll('pre').forEach(pre => {
+            const codeBlock = pre.querySelector('code');
+            if (codeBlock) {
+              const langClass = Array.from(codeBlock.classList).find(c => c.startsWith('language-'));
+              const language = langClass ? langClass.replace('language-', '') : 'Code';
+              
+              const header = document.createElement('div');
+              header.className = 'code-header';
+              header.innerHTML = `
+                <span>${language}</span>
+                <button class="copy-code-btn" onclick="copyCode(this)">Copy</button>
+              `;
+              
+              pre.insertBefore(header, pre.firstChild);
+              hljs.highlightElement(codeBlock);
+            }
+          });
+        }
         container.appendChild(bubble);
       });
       container.scrollTop = container.scrollHeight;
+    }
+
+    function copyCode(btn) {
+      const pre = btn.closest('pre');
+      const code = pre.querySelector('code').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        btn.innerText = 'Copied!';
+        setTimeout(() => { btn.innerText = 'Copy'; }, 2000);
+      });
     }
 
     function selectChat(id) {
