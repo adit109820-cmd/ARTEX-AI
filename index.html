@@ -723,12 +723,13 @@
             },
             body: JSON.stringify({
               model: modelName,
+              max_tokens: 1500, // <--- Yahan limit add ki gayi hai
               messages: [
                 { role: "system", content: systemInstruction },
                 { role: "user", content: text }
               ]
             })
-          });
+              
 
           const data = await response.json();
 
