@@ -492,7 +492,6 @@
   <script>
     // ✅ Nayi Line:
     let apiKey = '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';
-    
     let chats = JSON.parse(localStorage.getItem('ARTEX_CHATS')) || [
       {
         id: 'chat-1',
@@ -534,7 +533,6 @@
       const currentChat = chats.find(c => c.id === activeChatId);
       if (!currentChat) return;
 
-      // IF CHAT IS EMPTY -> DISPLAY STARTER PROMPT CARDS
       if (!currentChat.messages || currentChat.messages.length === 0) {
         const starterDiv = document.createElement('div');
         starterDiv.className = 'starter-container';
@@ -568,7 +566,6 @@
         return;
       }
 
-      // RENDER REGULAR CHAT MESSAGES
       currentChat.messages.forEach(msg => {
         const bubble = document.createElement('div');
         bubble.className = `msg ${msg.sender === 'user' ? 'user-msg' : 'ai-msg'}`;
@@ -576,10 +573,8 @@
         if (msg.sender === 'user') {
           bubble.innerText = msg.text;
         } else {
-          // Parse Markdown for AI Response
           bubble.innerHTML = marked.parse(msg.text);
 
-          // Code Block Syntax Highlighting + Copy Button Processing
           bubble.querySelectorAll('pre').forEach(pre => {
             const codeBlock = pre.querySelector('code');
             if (codeBlock) {
@@ -618,7 +613,6 @@
       });
     }
 
-    // EXPORT CHAT FUNCTION
     function exportChat(chatId = activeChatId) {
       const chat = chats.find(c => c.id === chatId);
       if (!chat || !chat.messages || chat.messages.length === 0) {
@@ -632,7 +626,7 @@
       exportText += ` Date: ${new Date().toLocaleString()}\n`;
       exportText += `=======================================\n\n`;
 
-      chat.messages.forEach((msg, idx) => {
+      chat.messages.forEach((msg) => {
         const sender = msg.sender === 'user' ? 'YOU' : 'ARTEX AI';
         exportText += `[${sender}]:\n${msg.text}\n\n---------------------------------------\n\n`;
       });
@@ -671,7 +665,6 @@
       renderMessages();
     }
 
-    // OPENROUTER API WITH SYSTEM PROMPT & AUTO-MODEL FALLBACK
     async function sendMessage() {
       const input = document.getElementById('user-input');
       const text = input.value.trim();
@@ -722,7 +715,7 @@
             },
             body: JSON.stringify({
               model: modelName,
-              max_tokens: 1500, // Prevents credit/max_tokens limit errors on free tier
+              max_tokens: 1500,
               messages: [
                 { role: "system", content: systemInstruction },
                 { role: "user", content: text }
@@ -743,7 +736,7 @@
         }
       }
 
-      currentChat.messages.pop(); // Remove loading message
+      currentChat.messages.pop();
 
       if (aiResponseText) {
         currentChat.messages.push({ sender: 'ai', text: aiResponseText });
