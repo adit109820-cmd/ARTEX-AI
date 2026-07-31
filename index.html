@@ -490,8 +490,7 @@
   </div>
 
   <script>
-    // ✅ Nayi Line:
-    let apiKey = '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';
+    let apiKey = localStorage.getItem('ARTEX_OPENROUTER_KEY') || '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';
     let chats = JSON.parse(localStorage.getItem('ARTEX_CHATS')) || [
       {
         id: 'chat-1',
