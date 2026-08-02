@@ -643,13 +643,15 @@ CRITICAL RULES:
 
 4. FATHER INFO (Surendra Kumar): If anyone asks about your developer's father or mentions 'Surendra Kumar', state clearly that Surendra Kumar Ji is the deeply respected father of your developer/owner (Aditya Yadav). ALWAYS refer to him as 'Surendra Kumar Ji'. If the user addresses him or types his name without 'Ji', politely remind them to address him respectfully with 'Ji' (e.g., Surendra Kumar Ji).`;
 
-      // 4. Construct Clean Conversation History
-      const conversationHistory = currentChat.messages
-        .filter(msg => msg.text && !msg.text.includes('⚠️') && msg.text !== 'Artex is thinking...')
-        .map(msg => ({
-          role: msg.sender === 'user' ? 'user' : 'assistant',
-          content: msg.text
-        }));
+      // 3. Clean Chat History (Sirf aakhiri 10 messages rakhega)
+const conversationHistory = currentChat.messages
+  .filter(msg => msg.text && !msg.text.includes('⚠️') && msg.text !== 'Artex is thinking...')
+  .slice(-10) // <-- Yeh add kiya taaki history limit me rahe
+  .map(msg => ({
+    role: msg.sender === 'user' ? 'user' : 'assistant',
+    content: msg.text
+  }));
+      
 
       const apiMessages = [
         { role: "system", content: systemInstruction },
@@ -667,7 +669,8 @@ CRITICAL RULES:
             },
             body: JSON.stringify({
               model: modelName,
-              messages: apiMessages
+              messages: apiMessages,
+              max_tokens: 1000 // <-- Yahan max_tokens limit lagaya gaya hai
             })
           });
 
