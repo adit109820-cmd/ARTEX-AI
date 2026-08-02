@@ -520,18 +520,22 @@
     }
 
     function renderChatsList() {
-      const container = document.getElementById('chats-list');
-      container.innerHTML = '';
-      chats.forEach(chat => {
-        const item = document.createElement('div');
-        item.className = `chat-item ${chat.id === activeChatId ? 'active' : ''}`;
-        item.onclick = () => selectChat(chat.id);
-        item.innerHTML = `
-          <span class="chat-title">${chat.title}</span>
-        `;
-        container.appendChild(item);
-      });
+  const container = document.getElementById('chats-list');
+  container.innerHTML = '';
+  chats.forEach(chat => {
+    const item = document.createElement('div');
+    item.className = `chat-item ${chat.id === activeChatId ? 'active' : ''}`;
+    item.onclick = () => selectChat(chat.id);
+    
+    // ✅ YAHAN 3-DOTS BUTTON ADD KIYA GAYA HAI:
+    item.innerHTML = `
+      <span class="chat-title">${chat.title}</span>
+      <button class="dots-btn" onclick="openChatMenu(event, '${chat.id}')">⋮</button>
+    `;
+    container.appendChild(item);
+  });
     }
+    
 
     function renderMessages() {
       const container = document.getElementById('messages-container');
