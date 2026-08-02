@@ -433,7 +433,6 @@
     <button class="new-chat-btn" onclick="createNewChat()">+ New Chat</button>
     <div class="section-title">Recent Chats</div>
     <div class="chats-list" id="chats-list"></div>
-    <button class="api-config-btn" onclick="openApiModal()">🔑 Set API Key</button>
   </div>
 
   <div class="main-chat">
@@ -731,6 +730,103 @@ const conversationHistory = currentChat.messages
       saveState();
       renderMessages();
     }
+    // 1. Updated 3-Dots Menu Options (Rename, Duplicate, Export, Delete)
+function openChatMenu(e, chatId) {
+  e.stopPropagation(); // Chat select hone se rokta hai
+  
+  const chat = chats.find(c => c.id === chatId);
+  if (!chat) return;
+
+  const action = prompt(
+    `--- ${chat.title} ---\n\n` +
+    "Option choose karein:\n" +
+    "1: Rename (Naam badlein)\n" +
+    "2: Duplicate (Copy banayein)\n" +
+    "3: Export (Text File Download)\n" +
+    "4: Delete (Chat hatayein)"
+  );
+
+  if (action === '1') {
+    // Rename Logic
+    const newTitle = prompt("Naya naam likhein:", chat.title);
+    if (newTitle && newTitle.trim()) {
+      chat.title = newTitle.trim();
+      saveState();
+      renderChatsList();
+    }
+  } else if (action === '2') {
+    // Duplicate Logic
+    duplicateChat(chatId);
+  } else if (action === '3') {
+    // Export Logic
+    exportChat(chatId);
+  } else if (action === '4') {
+    // Delete Logic
+    if (confirm(`Kya aap '${chat.title}' ko delete karna chahte hain?`)) {
+      chats = chats.filter(c => c.id !== chatId);
+      if (activeChatId === chatId) {
+        activeChatId = chats.length > 0 ? chats[0].id : 'chat_default';
+      }
+      saveState();
+      renderChatsList();
+      renderMessages();
+    }
+  }
+}
+
+// 2. Duplicate Chat Helper Function
+function duplicateChat(chatId) {
+  const originalChat = chats.find(c => c.id === chatId);
+  if (!originalChat) return;
+
+  // Nayi Duplicate Chat Object
+  const newChat = {
+    id: 'chat_' + Date.now(),
+    title: `${originalChat.title} (Copy)`,
+    messages: JSON.parse(JSON.stringify(originalChat.messages)) // Deep Copy of Messages
+  };
+
+  chats.unshift(newChat); // List me sabse upar add karein
+  activeChatId = newChat.id; // Directly nayi copied chat open ho jaye
+  saveState();
+  renderChatsList();
+  renderMessages();
+}
+
+// 3. Export Chat Helper Function (.txt File Download)
+function exportChat(chatId) {
+  const chat = chats.find(c => c.id === chatId);
+  if (!chat || chat.messages.length === 0) {
+    alert("Is chat me export karne ke liye koi message nahi hai!");
+    return;
+  }
+
+  // Conversation Formatting
+  let exportContent = `=======================================\n`;
+  exportContent += `  Artex AI Chat Export: ${chat.title}\n`;
+  exportContent += `=======================================\n\n`;
+
+  chat.messages.forEach((msg, index) => {
+    const sender = msg.sender === 'user' ? ' You' : '🤖 Artex AI';
+    exportContent += `[${sender}]:\n${msg.text}\n\n---------------------------------------\n\n`;
+  });
+
+  // Text Blob banayein aur auto-download trigger karein
+  const blob = new Blob([exportContent], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  
+  // Safe File Name Format
+  const safeFileName = chat.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  a.href = url;
+  a.download = `${safeFileName}_chat.txt`;
+  
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+                           }
+    
   </script>
 </body>
 </html>
