@@ -415,91 +415,55 @@
         max-width: 90% !important;
       }
     }
-    /* PREMIUM SLIDE & FADE ANIMATED MODAL */
-.chat-menu-modal {
+    /* FLOATING SMALL DROPDOWN POPOVER */
+.chat-popover {
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  z-index: 10000;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.25s ease-out;
-}
-
-.chat-menu-modal.active {
-  display: flex;
-  opacity: 1;
-}
-
-.chat-menu-content {
-  background: rgba(15, 23, 42, 0.88);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--glass-border);
-  border-radius: 24px;
-  padding: 20px;
-  width: 90%;
-  max-width: 320px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
-  transform: translateY(35px) scale(0.95);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 16px;
+  padding: 6px;
+  width: 170px;
+  z-index: 10000;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.chat-menu-modal.active .chat-menu-content {
-  transform: translateY(0) scale(1);
+.chat-popover.active {
+  display: block;
+  opacity: 1;
+  transform: scale(1);
 }
 
-.chat-menu-header {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-sub);
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--glass-border);
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.chat-menu-item {
+.popover-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  font-size: 14.5px;
+  gap: 10px;
+  padding: 9px 12px;
+  font-size: 13.5px;
   font-weight: 500;
   color: #f1f5f9;
-  border-radius: 14px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  margin-bottom: 4px;
+  transition: all 0.15s ease;
 }
 
-.chat-menu-item:hover {
+.popover-item:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #38bdf8;
-  transform: translateX(4px);
 }
 
-.chat-menu-item.delete {
+.popover-item.delete {
   color: #f87171;
 }
 
-.chat-menu-item.delete:hover {
+.popover-item.delete:hover {
   background: rgba(248, 113, 113, 0.15);
   color: #ef4444;
-}
-
-.chat-menu-icon {
-  font-size: 17px;
 }
     
   </style>
@@ -547,33 +511,21 @@
       </div>
     </div>
   </div>
-  <div class="chat-menu-modal" id="chatMenuModal" onclick="closeChatMenuModal()">
-  <div class="chat-menu-content" onclick="event.stopPropagation()">
-    <div class="chat-menu-header" id="chatMenuTitle">Chat Options</div>
-    
-    <div class="chat-menu-item" onclick="handleMenuAction('rename')">
-      <span class="chat-menu-icon">✏️</span>
-      <span>Rename Chat</span>
-    </div>
-    
-    <div class="chat-menu-item" onclick="handleMenuAction('duplicate')">
-      <span class="chat-menu-icon">📋</span>
-      <span>Duplicate Chat</span>
-    </div>
-    
-    <div class="chat-menu-item" onclick="handleMenuAction('export')">
-      <span class="chat-menu-icon">📥</span>
-      <span>Export History (.txt)</span>
-    </div>
-    
-    <div class="chat-menu-item delete" onclick="handleMenuAction('delete')">
-      <span class="chat-menu-icon">🗑️</span>
-      <span>Delete Chat</span>
-    </div>
+  <div class="chat-popover" id="chatPopover" onclick="event.stopPropagation()">
+  <div class="popover-item" onclick="handleMenuAction('rename')">
+    <span>✏️</span> <span>Rename</span>
+  </div>
+  <div class="popover-item" onclick="handleMenuAction('duplicate')">
+    <span>📋</span> <span>Duplicate</span>
+  </div>
+  <div class="popover-item" onclick="handleMenuAction('export')">
+    <span>📥</span> <span>Export (.txt)</span>
+  </div>
+  <div class="popover-item delete" onclick="handleMenuAction('delete')">
+    <span>🗑️</span> <span>Delete</span>
   </div>
   </div>
   
-
   <script>
     // INITIAL STATE & STORAGE
     let chats = JSON.parse(localStorage.getItem('artex_chats')) || [
@@ -849,36 +801,41 @@ const conversationHistory = currentChat.messages
     }
     let targetChatId = null;
 
-// 1. Sleek Modal Open Logic
+// 1. Position Popover Exactly Next to 3-Dots Button
 function openChatMenu(e, chatId) {
   e.stopPropagation();
   targetChatId = chatId;
-  
-  const chat = chats.find(c => c.id === chatId);
-  if (!chat) return;
 
-  document.getElementById('chatMenuTitle').textContent = chat.title;
-  const modal = document.getElementById('chatMenuModal');
-  
-  modal.style.display = 'flex';
-  setTimeout(() => modal.classList.add('active'), 10);
+  const popover = document.getElementById('chatPopover');
+  const btn = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+
+  // Position calculation (3-dots ke thik neeche/side me)
+  const topPos = rect.bottom + 6;
+  const leftPos = Math.min(rect.left, window.innerWidth - 185);
+
+  popover.style.top = `${topPos}px`;
+  popover.style.left = `${leftPos}px`;
+
+  popover.classList.add('active');
 }
 
-// 2. Modal Close Logic
-function closeChatMenuModal() {
-  const modal = document.getElementById('chatMenuModal');
-  modal.classList.remove('active');
-  setTimeout(() => {
-    modal.style.display = 'none';
-    targetChatId = null;
-  }, 250);
+// 2. Close Popover
+function closeChatPopover() {
+  const popover = document.getElementById('chatPopover');
+  if (popover) {
+    popover.classList.remove('active');
+  }
 }
+
+// Automatically close when clicking anywhere else on screen
+document.addEventListener('click', closeChatPopover);
 
 // 3. Action Handler
 function handleMenuAction(action) {
   if (!targetChatId) return;
   const chatId = targetChatId;
-  closeChatMenuModal();
+  closeChatPopover();
 
   setTimeout(() => {
     if (action === 'rename') {
@@ -906,7 +863,7 @@ function handleMenuAction(action) {
         renderMessages();
       }
     }
-  }, 200);
+  }, 100);
 }
     </script>
 </body>
