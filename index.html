@@ -763,42 +763,44 @@ body {
     }
 
     async function sendMessage() {
-      const input = document.getElementById('user-input');
-      const text = input.value.trim();
-      if (!text) return;
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
 
-      if (!apiKey) {
-        alert("Pehle side menu se OpenRouter API Key add karein!");
-        openApiModal();
-        return;
-      }
+  if (!apiKey) {
+    alert("Pehle side menu se OpenRouter API Key add karein!");
+    openApiModal();
+    return;
+  }
 
-      const currentChat = chats.find(c => c.id === activeChatId);
-      if (!currentChat) return;
+  const currentChat = chats.find(c => c.id === activeChatId);
+  if (!currentChat) return;
 
-      currentChat.messages.push({ sender: 'user', text: text });
-      input.value = '';
-      saveState();
-      renderMessages();
+  // 1. User message save & UI update
+  currentChat.messages.push({ sender: 'user', text: text });
+  input.value = '';
+  saveState();
+  renderMessages();
 
-      const loadingMsg = { sender: 'ai', text: 'Artex is thinking...' };
-      currentChat.messages.push(loadingMsg);
-      renderMessages();
+  // 2. Loading state display
+  const loadingMsg = { sender: 'ai', text: 'Artex is thinking...' };
+  currentChat.messages.push(loadingMsg);
+  renderMessages();
 
-      const cleanKey = apiKey.trim();
+  const cleanKey = apiKey.trim();
 
-      const freeModels = [
-        "google/gemini-2.0-flash-exp:free",
-        "deepseek/deepseek-r1:free",
-        "meta-llama/llama-3.3-70b-instruct:free",
-        "mistralai/mistral-7b-instruct:free",
-        "openrouter/auto"
-      ];
+  const freeModels = [
+    "google/gemini-2.0-flash-exp:free",
+    "deepseek/deepseek-r1:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "mistralai/mistral-7b-instruct:free",
+    "openrouter/auto"
+  ];
 
-      let aiResponseText = null;
-      let lastErr = '';
+  let aiResponseText = null;
+  let lastErr = '';
 
-      const systemInstruction = `You are Artex AI created by Aditya Yadav from India. 
+  const systemInstruction = `You are Artex AI created by Aditya Yadav from India. 
 Always structure your responses neatly using Markdown headings (#, ##, ###) and bullet points.
 
 CRITICAL RULES:
@@ -809,7 +811,65 @@ CRITICAL RULES:
 3. MOTHER INFO (Maya Devi): If anyone asks about your developer's mother or mentions 'Maya Devi', state clearly that Maya Devi Ji is the deeply respected mother of your developer/owner (Aditya Yadav). ALWAYS refer to her as 'Maya Devi Ji'. If the user addresses her or types her name without 'Ji', politely remind them to address her respectfully with 'Ji' (e.g., Maya Devi Ji).
 
 4. FATHER INFO (Surendra Kumar): If anyone asks about your developer's father or mentions 'Surendra Kumar', state clearly that Surendra Kumar Ji is the deeply respected father of your developer/owner (Aditya Yadav). ALWAYS refer to him as 'Surendra Kumar Ji'. If the user addresses him or types his name without 'Ji', politely remind them to address him respectfully with 'Ji' (e.g., Surendra Kumar Ji).`;
-      
+
+  // 3. Clean Chat History (Loading message & error messages filtered out)
+  const conversationHistory = currentChat.messages
+    .filter(msg => msg.text && !msg.text.includes('⚠️') && msg.text !== 'Artex is thinking...')
+    .map(msg => ({
+      role: msg.sender === 'user' ? 'user' : 'assistant',
+      content: msg.text
+    }));
+
+  const apiMessages = [
+    { role: "system", content: systemInstruction },
+    ...conversationHistory
+  ];
+
+  // 4. Try Free Models One By One
+  for (const modelName of freeModels) {
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${cleanKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: modelName, // Dynamic model usage
+          messages: apiMessages
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.choices && data.choices[0]?.message?.content) {
+        aiResponseText = data.choices[0].message.content;
+        break; // Success! Loop stop karein
+      } else if (data.error) {
+        lastErr = `[${modelName}] ${data.error.message || JSON.stringify(data.error)}`;
+      }
+    } catch (err) {
+      lastErr = err.message;
+    }
+  }
+
+  // 5. Loading message remove karein
+  currentChat.messages.pop();
+
+  // 6. Response ya Error Push Karein
+  if (aiResponseText) {
+    currentChat.messages.push({ sender: 'ai', text: aiResponseText });
+  } else {
+    currentChat.messages.push({ 
+      sender: 'ai', 
+      text: `⚠️ OpenRouter Error: All models failed. Last detail: ${lastErr}` 
+    });
+  }
+
+  saveState();
+  renderMessages();
+    }
+    
 
       for (const modelName of freeModels) {
         // 1. Aapke currentChat se history array banayein (Loading msg ko skip karke)
@@ -834,41 +894,7 @@ const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
   headers: {
     "Authorization": `Bearer ${apiKey}`,
     "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    model: "google/gemini-2.0-flash-001",
-    messages: apiMessages // <-- Yahan 'apiMessages' pass kar diya
-  })
-});
-        
 
-          const data = await response.json();
-
-          if (response.ok && data.choices && data.choices[0]?.message?.content) {
-            aiResponseText = data.choices[0].message.content;
-            break;
-          } else if (data.error) {
-            lastErr = `[${modelName}] ${data.error.message || JSON.stringify(data.error)}`;
-          }
-        } catch (err) {
-          lastErr = err.message;
-        }
-      }
-
-      currentChat.messages.pop();
-
-      if (aiResponseText) {
-        currentChat.messages.push({ sender: 'ai', text: aiResponseText });
-      } else {
-        currentChat.messages.push({ 
-          sender: 'ai', 
-          text: `⚠️ OpenRouter Error: All models failed. Last detail: ${lastErr}` 
-        });
-      }
-
-      saveState();
-      renderMessages();
-    }
 
     function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
 
