@@ -415,6 +415,93 @@
         max-width: 90% !important;
       }
     }
+    /* PREMIUM SLIDE & FADE ANIMATED MODAL */
+.chat-menu-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+}
+
+.chat-menu-modal.active {
+  display: flex;
+  opacity: 1;
+}
+
+.chat-menu-content {
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 20px;
+  width: 90%;
+  max-width: 320px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+  transform: translateY(35px) scale(0.95);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chat-menu-modal.active .chat-menu-content {
+  transform: translateY(0) scale(1);
+}
+
+.chat-menu-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--glass-border);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: #f1f5f9;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+}
+
+.chat-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #38bdf8;
+  transform: translateX(4px);
+}
+
+.chat-menu-item.delete {
+  color: #f87171;
+}
+
+.chat-menu-item.delete:hover {
+  background: rgba(248, 113, 113, 0.15);
+  color: #ef4444;
+}
+
+.chat-menu-icon {
+  font-size: 17px;
+}
+    
   </style>
 </head>
 <body>
@@ -460,6 +547,32 @@
       </div>
     </div>
   </div>
+  <div class="chat-menu-modal" id="chatMenuModal" onclick="closeChatMenuModal()">
+  <div class="chat-menu-content" onclick="event.stopPropagation()">
+    <div class="chat-menu-header" id="chatMenuTitle">Chat Options</div>
+    
+    <div class="chat-menu-item" onclick="handleMenuAction('rename')">
+      <span class="chat-menu-icon">✏️</span>
+      <span>Rename Chat</span>
+    </div>
+    
+    <div class="chat-menu-item" onclick="handleMenuAction('duplicate')">
+      <span class="chat-menu-icon">📋</span>
+      <span>Duplicate Chat</span>
+    </div>
+    
+    <div class="chat-menu-item" onclick="handleMenuAction('export')">
+      <span class="chat-menu-icon">📥</span>
+      <span>Export History (.txt)</span>
+    </div>
+    
+    <div class="chat-menu-item delete" onclick="handleMenuAction('delete')">
+      <span class="chat-menu-icon">🗑️</span>
+      <span>Delete Chat</span>
+    </div>
+  </div>
+  </div>
+  
 
   <script>
     // INITIAL STATE & STORAGE
@@ -734,102 +847,67 @@ const conversationHistory = currentChat.messages
       saveState();
       renderMessages();
     }
-    // 1. Updated 3-Dots Menu Options (Rename, Duplicate, Export, Delete)
+    let targetChatId = null;
+
+// 1. Sleek Modal Open Logic
 function openChatMenu(e, chatId) {
-  e.stopPropagation(); // Chat select hone se rokta hai
+  e.stopPropagation();
+  targetChatId = chatId;
   
   const chat = chats.find(c => c.id === chatId);
   if (!chat) return;
 
-  const action = prompt(
-    `--- ${chat.title} ---\n\n` +
-    "Option choose karein:\n" +
-    "1: Rename (Naam badlein)\n" +
-    "2: Duplicate (Copy banayein)\n" +
-    "3: Export (Text File Download)\n" +
-    "4: Delete (Chat hatayein)"
-  );
+  document.getElementById('chatMenuTitle').textContent = chat.title;
+  const modal = document.getElementById('chatMenuModal');
+  
+  modal.style.display = 'flex';
+  setTimeout(() => modal.classList.add('active'), 10);
+}
 
-  if (action === '1') {
-    // Rename Logic
-    const newTitle = prompt("Naya naam likhein:", chat.title);
-    if (newTitle && newTitle.trim()) {
-      chat.title = newTitle.trim();
-      saveState();
-      renderChatsList();
-    }
-  } else if (action === '2') {
-    // Duplicate Logic
-    duplicateChat(chatId);
-  } else if (action === '3') {
-    // Export Logic
-    exportChat(chatId);
-  } else if (action === '4') {
-    // Delete Logic
-    if (confirm(`Kya aap '${chat.title}' ko delete karna chahte hain?`)) {
-      chats = chats.filter(c => c.id !== chatId);
-      if (activeChatId === chatId) {
-        activeChatId = chats.length > 0 ? chats[0].id : 'chat_default';
+// 2. Modal Close Logic
+function closeChatMenuModal() {
+  const modal = document.getElementById('chatMenuModal');
+  modal.classList.remove('active');
+  setTimeout(() => {
+    modal.style.display = 'none';
+    targetChatId = null;
+  }, 250);
+}
+
+// 3. Action Handler
+function handleMenuAction(action) {
+  if (!targetChatId) return;
+  const chatId = targetChatId;
+  closeChatMenuModal();
+
+  setTimeout(() => {
+    if (action === 'rename') {
+      const chat = chats.find(c => c.id === chatId);
+      if (!chat) return;
+      const newTitle = prompt("Naya naam likhein:", chat.title);
+      if (newTitle && newTitle.trim()) {
+        chat.title = newTitle.trim();
+        saveState();
+        renderChatsList();
       }
-      saveState();
-      renderChatsList();
-      renderMessages();
+    } else if (action === 'duplicate') {
+      duplicateChat(chatId);
+    } else if (action === 'export') {
+      exportChat(chatId);
+    } else if (action === 'delete') {
+      const chat = chats.find(c => c.id === chatId);
+      if (chat && confirm(`Kya aap '${chat.title}' ko delete karna chahte hain?`)) {
+        chats = chats.filter(c => c.id !== chatId);
+        if (activeChatId === chatId) {
+          activeChatId = chats.length > 0 ? chats[0].id : 'chat_default';
+        }
+        saveState();
+        renderChatsList();
+        renderMessages();
+      }
     }
-  }
+  }, 200);
 }
-
-// 2. Duplicate Chat Helper Function
-function duplicateChat(chatId) {
-  const originalChat = chats.find(c => c.id === chatId);
-  if (!originalChat) return;
-
-  // Nayi Duplicate Chat Object
-  const newChat = {
-    id: 'chat_' + Date.now(),
-    title: `${originalChat.title} (Copy)`,
-    messages: JSON.parse(JSON.stringify(originalChat.messages)) // Deep Copy of Messages
-  };
-
-  chats.unshift(newChat); // List me sabse upar add karein
-  activeChatId = newChat.id; // Directly nayi copied chat open ho jaye
-  saveState();
-  renderChatsList();
-  renderMessages();
-}
-
-// 3. Export Chat Helper Function (.txt File Download)
-function exportChat(chatId) {
-  const chat = chats.find(c => c.id === chatId);
-  if (!chat || chat.messages.length === 0) {
-    alert("Is chat me export karne ke liye koi message nahi hai!");
-    return;
-  }
-
-  // Conversation Formatting
-  let exportContent = `=======================================\n`;
-  exportContent += `  Artex AI Chat Export: ${chat.title}\n`;
-  exportContent += `=======================================\n\n`;
-
-  chat.messages.forEach((msg, index) => {
-    const sender = msg.sender === 'user' ? ' You' : '🤖 Artex AI';
-    exportContent += `[${sender}]:\n${msg.text}\n\n---------------------------------------\n\n`;
-  });
-
-  // Text Blob banayein aur auto-download trigger karein
-  const blob = new Blob([exportContent], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  
-  // Safe File Name Format
-  const safeFileName = chat.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-  a.href = url;
-  a.download = `${safeFileName}_chat.txt`;
-  
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
- }
     </script>
 </body>
 </html>
