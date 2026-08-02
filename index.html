@@ -812,34 +812,35 @@ CRITICAL RULES:
       
 
       for (const modelName of freeModels) {
-        // ✅ IS NAYE CODE SE REPLACE KAREIN:
+        // 1. Aapke currentChat se history array banayein (Loading msg ko skip karke)
+const conversationHistory = (currentChat && currentChat.messages) 
+  ? currentChat.messages
+      .filter(msg => msg.text && !msg.text.includes('⚠️')) // Error messages ko history me na bhejein
+      .map(msg => ({
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        content: msg.text
+      }))
+  : [];
 
-try {
-  // 1. Current Chat se saare purane messages nikalein aur history banayein
-  const currentChat = chats.find(c => c.id === currentChatId);
-  const conversationHistory = currentChat ? currentChat.messages.map(msg => ({
-    role: msg.sender === 'user' ? 'user' : 'assistant',
-    content: msg.text
-  })) : [];
+// 2. System Instruction + Full Chat History
+const apiMessages = [
+  { role: "system", content: systemInstruction },
+  ...conversationHistory
+];
 
-  // 2. System Prompt aur Poori Chat History ko ek sath jodein
-  const apiMessages = [
-    { role: "system", content: systemInstruction },
-    ...conversationHistory
-  ];
-
-  // 3. OpenRouter API ko poori history bhein
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.0-flash-001",
-      messages: apiMessages // <-- Yahan 'apiMessages' pass kar diya
-    })
-  });
+// 3. OpenRouter API ko poori history bhein
+const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${apiKey}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "google/gemini-2.0-flash-001",
+    messages: apiMessages // <-- Yahan 'apiMessages' pass kar diya
+  })
+});
+        
 
           const data = await response.json();
 
