@@ -34,49 +34,48 @@
     }
     
     html, body {
-  width: 100%;
-  max-width: 100vw;
-  height: 100%;
-  height: 100dvh;
-  overflow-x: hidden !important; /* Screen ke baahar kuch nahi jaane dega */
-  overflow-y: hidden;
-  background-color: #030712;
-  position: relative;
-}
+      width: 100%;
+      max-width: 100vw;
+      height: 100%;
+      height: 100dvh;
+      overflow-x: hidden !important;
+      overflow-y: hidden;
+      background-color: #030712;
+      position: relative;
+    }
 
-body { 
-  display: flex; 
-  color: var(--text-main); 
-  position: relative;
-  width: 100%;
-  max-width: 100vw;
-}
+    body { 
+      display: flex; 
+      color: var(--text-main); 
+      position: relative;
+      width: 100%;
+      max-width: 100vw;
+    }
 
-    /* LIGHTS KO BOUNDARY ME RAKHNE KE LIYE */
-.glow-blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  pointer-events: none;
-  z-index: 0;
-  max-width: 100vw; /* Phone width se bada nahi hone dega */
-  animation: floatPulse 12s infinite alternate ease-in-out;
-}
-.glow-blob-1 {
-  top: -50px; left: -50px; width: 280px; height: 280px;
-  background: rgba(37, 99, 235, 0.25);
-}
-.glow-blob-2 {
-  bottom: -50px; right: -50px; width: 300px; height: 300px;
-  background: rgba(124, 58, 237, 0.2);
-  animation-delay: -6s;
-}
-.glow-blob-3 {
-  top: 40%; left: 50%; transform: translate(-50%, -50%);
-  width: 250px; height: 250px;
-  background: rgba(236, 72, 153, 0.1);
-}
-    
+    /* LIGHTS / GLOW BLOBS */
+    .glow-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+      max-width: 100vw;
+      animation: floatPulse 12s infinite alternate ease-in-out;
+    }
+    .glow-blob-1 {
+      top: -50px; left: -50px; width: 280px; height: 280px;
+      background: rgba(37, 99, 235, 0.25);
+    }
+    .glow-blob-2 {
+      bottom: -50px; right: -50px; width: 300px; height: 300px;
+      background: rgba(124, 58, 237, 0.2);
+      animation-delay: -6s;
+    }
+    .glow-blob-3 {
+      top: 40%; left: 50%; transform: translate(-50%, -50%);
+      width: 250px; height: 250px;
+      background: rgba(236, 72, 153, 0.1);
+    }
 
     @keyframes floatPulse {
       0% { transform: scale(1) translate(0, 0); }
@@ -153,7 +152,23 @@ body {
     .dots-btn { background: none; border: none; color: var(--text-sub); font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: color 0.2s; }
     .dots-btn:hover { color: #ffffff; }
 
-    .settings-btn { display: none !important; }
+    .api-config-btn {
+      margin-top: auto;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      color: #38bdf8;
+      padding: 12px;
+      border-radius: 16px;
+      font-weight: 500;
+      font-size: 13.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .api-config-btn:hover { background: rgba(56, 189, 248, 0.15); color: white; }
 
     /* CONTEXT MENU */
     .global-context-menu {
@@ -189,43 +204,15 @@ body {
     }
     .menu-btn:hover { background: var(--glass-card-hover); border-color: rgba(255,255,255,0.25); }
 
-    .export-header-btn {
-      margin-left: auto;
-      background: var(--glass-card);
-      border: 1px solid var(--glass-border);
-      color: #38bdf8;
-      padding: 8px 16px;
-      border-radius: 12px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.25s ease;
-    }
-    .export-header-btn:hover {
-      background: rgba(56, 189, 248, 0.15);
-      border-color: rgba(56, 189, 248, 0.4);
-      transform: translateY(-1px);
-    }
-
     .messages-container { 
       flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; 
     }
     .messages-container::-webkit-scrollbar { width: 5px; }
     .messages-container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 10px; }
 
-    /* FADE SLIDE UP ANIMATION */
     @keyframes fadeSlideUp {
-      0% {
-        opacity: 0;
-        transform: translateY(28px) scale(0.97);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
+      0% { opacity: 0; transform: translateY(28px) scale(0.97); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     /* CHAT BUBBLES */
@@ -247,164 +234,47 @@ body {
       color: #f1f5f9; border-bottom-left-radius: 6px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     }
 
-    /* MARKDOWN STYLING FOR HEADINGS & PARAGRAPHS */
     .ai-msg p { margin-bottom: 12px; }
     .ai-msg p:last-child { margin-bottom: 0; }
-    
-    .ai-msg h1 { 
-      font-size: 21px; font-weight: 700; color: #38bdf8; 
-      margin: 18px 0 10px 0; border-bottom: 1px solid rgba(56, 189, 248, 0.25); 
-      padding-bottom: 6px; letter-spacing: -0.3px;
-    }
-    .ai-msg h2 { 
-      font-size: 18px; font-weight: 600; color: #a78bfa; 
-      margin: 16px 0 8px 0; border-bottom: 1px dashed rgba(167, 139, 250, 0.2);
-      padding-bottom: 4px;
-    }
-    .ai-msg h3 { 
-      font-size: 15.5px; font-weight: 600; color: #f472b6; 
-      margin: 14px 0 6px 0; 
-    }
-
+    .ai-msg h1 { font-size: 21px; font-weight: 700; color: #38bdf8; margin: 18px 0 10px 0; border-bottom: 1px solid rgba(56, 189, 248, 0.25); padding-bottom: 6px; }
+    .ai-msg h2 { font-size: 18px; font-weight: 600; color: #a78bfa; margin: 16px 0 8px 0; border-bottom: 1px dashed rgba(167, 139, 250, 0.2); padding-bottom: 4px; }
+    .ai-msg h3 { font-size: 15.5px; font-weight: 600; color: #f472b6; margin: 14px 0 6px 0; }
     .ai-msg ul, .ai-msg ol { margin: 10px 0 12px 22px; }
     .ai-msg li { margin-bottom: 6px; }
     .ai-msg strong { color: #38bdf8; font-weight: 600; }
-    .ai-msg blockquote { 
-      border-left: 3px solid #818cf8; padding-left: 14px; 
-      margin: 12px 0; color: #94a3b8; font-style: italic; 
-    }
 
-    /* STARTER PROMPT CARDS (WELCOME SCREEN) */
+    /* STARTER PROMPT CARDS */
     .starter-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      margin: auto;
-      max-width: 650px;
-      width: 100%;
-      text-align: center;
-      padding: 20px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      margin: auto; max-width: 650px; width: 100%; text-align: center; padding: 20px;
       animation: fadeSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     .starter-title {
-      font-size: 26px;
-      font-weight: 700;
-      margin-bottom: 6px;
+      font-size: 26px; font-weight: 700; margin-bottom: 6px;
       background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      letter-spacing: -0.5px;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .starter-subtitle {
-      font-size: 14px;
-      color: var(--text-sub);
-      margin-bottom: 28px;
-      font-weight: 400;
-    }
-    .starter-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-      width: 100%;
-    }
+    .starter-subtitle { font-size: 14px; color: var(--text-sub); margin-bottom: 28px; font-weight: 400; }
+    .starter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; width: 100%; }
     .prompt-card {
-      background: var(--glass-card);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--glass-border);
-      border-radius: 20px;
-      padding: 18px;
-      text-align: left;
-      cursor: pointer;
-      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      background: var(--glass-card); backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border); border-radius: 20px; padding: 18px;
+      text-align: left; cursor: pointer; transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .prompt-card:hover {
-      background: var(--glass-card-hover);
-      border-color: rgba(56, 189, 248, 0.4);
-      transform: translateY(-4px);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+      background: var(--glass-card-hover); border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
     }
-    .prompt-card-icon {
-      font-size: 22px;
-      margin-bottom: 10px;
-    }
-    .prompt-card-title {
-      font-size: 14.5px;
-      font-weight: 600;
-      color: #f1f5f9;
-      margin-bottom: 4px;
-    }
-    .prompt-card-desc {
-      font-size: 12.5px;
-      color: var(--text-sub);
-      line-height: 1.45;
-    }
-    
-    /* CODE BLOCK STYLING WITH COPY BUTTON */
+    .prompt-card-icon { font-size: 22px; margin-bottom: 10px; }
+    .prompt-card-title { font-size: 14.5px; font-weight: 600; color: #f1f5f9; margin-bottom: 4px; }
+    .prompt-card-desc { font-size: 12.5px; color: var(--text-sub); line-height: 1.45; }
+
+    /* CODE BLOCK STYLING */
     .ai-msg pre {
-      background: #1e1e2e !important;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 14px;
-      padding: 14px;
-      margin: 14px 0;
-      overflow-x: auto;
-      position: relative;
+      background: #1e1e2e !important; border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 14px; padding: 14px; margin: 14px 0; overflow-x: auto;
     }
-    .ai-msg code {
-      font-family: 'Consolas', 'Courier New', monospace;
-      font-size: 13.5px;
-    }
-    .code-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(255, 255, 255, 0.06);
-      padding: 8px 14px;
-      border-radius: 10px 10px 0 0;
-      margin: -14px -14px 12px -14px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      font-size: 12px;
-      color: #94a3b8;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-    .copy-code-btn {
-      background: rgba(56, 189, 248, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      color: #38bdf8;
-      padding: 4px 12px;
-      border-radius: 8px;
-      font-size: 11.5px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: all 0.2s;
-    }
-    .copy-code-btn:hover {
-      background: rgba(56, 189, 248, 0.3);
-      color: #ffffff;
-    }
-
-    /* INPUT CONTAINER */
-    .input-container { 
-      padding: 18px 24px; display: flex; gap: 14px; 
-      border-top: 1px solid var(--glass-border); 
-      background: rgba(3, 7, 18, 0.65); backdrop-filter: blur(20px);
-    }
-    
-    .input-box {
-      flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border);
-      padding: 15px 24px; border-radius: 30px; color: white; outline: none; font-size: 16px;
-      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .input-box::placeholder { color: #64748b; }
-    .input-box:focus { border-color: #818cf8; background: rgba(255, 255, 255, 0.08); box-shadow: 0 0 25px rgba(129, 140, 248, 0.3); }
-
-    .send-btn {
-      background: var(--primary-gradient); color: white; border: none;
-      padding: 0 30px; border-radius: 30px; font-weight: 600; font-size: 15px; cursor: pointer;
-      box-shadow: 0 8px 25px var(--primary-glow); transition: all 0.28s ease;
-    }
-    .send-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(124, 58, 237, 0.65); }
+    .ai-msg code { font-family: 'Consolas', 'Courier New', monospace; font-size: 13.5px; }
 
     /* MODAL OVERLAYS */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(10px); z-index: 10000; align-items: center; justify-content: center; }
@@ -414,108 +284,110 @@ body {
     .glass-modal { background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(24px); border: 1px solid var(--glass-border); padding: 28px; border-radius: 26px; width: 90%; max-width: 420px; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8); }
     .modal-title { font-size: 19px; font-weight: 600; margin-bottom: 8px; color: #38bdf8; }
     .modal-desc { font-size: 13px; color: var(--text-sub); margin-bottom: 18px; line-height: 1.5; }
-    .modal-input { width: 100%; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--glass-border); padding: 13px 18px; border-radius: 16px; color: white; font-size: 14px; outline: none; margin-bottom: 22px; transition: border-color 0.2s; }
-    .modal-input:focus { border-color: #38bdf8; }
+    .modal-input { width: 100%; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--glass-border); padding: 13px 18px; border-radius: 16px; color: white; font-size: 14px; outline: none; margin-bottom: 22px; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
-    .modal-btn { padding: 11px 22px; border-radius: 14px; border: none; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .modal-btn { padding: 11px 22px; border-radius: 14px; border: none; font-size: 13.5px; font-weight: 600; cursor: pointer; }
     .modal-btn.cancel { background: rgba(255, 255, 255, 0.08); color: #cbd5e1; }
-    .modal-btn.cancel:hover { background: rgba(255, 255, 255, 0.15); }
-    .modal-btn.save { background: var(--primary-gradient); color: white; box-shadow: 0 6px 20px var(--primary-glow); }
+    .modal-btn.save { background: var(--primary-gradient); color: white; }
 
     .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.55); z-index: 90; backdrop-filter: blur(4px); }
     .overlay.active { display: block; }
-      /* ==========================================
-     MOBILE LAYOUT, AUTO-ZOOM & SEND BUTTON FIX
-     ========================================== */
 
-  /* 1. Zoom Stop for All Inputs */
-  input, textarea, select {
-    font-size: 16px !important;
-  }
+    /* ==========================================
+       MOBILE LAYOUT, AUTO-ZOOM & SEND BUTTON FIX
+       ========================================== */
 
-  /* 2. Fixed Input Bar & Visible Send Button */
-  .input-container { 
-    padding: 12px 16px !important; 
-    display: flex !important; 
-    align-items: center !important;
-    gap: 10px !important; 
-    width: 100% !important;
-    box-sizing: border-box !important;
-    border-top: 1px solid var(--glass-border); 
-    background: rgba(3, 7, 18, 0.85) !important; 
-    backdrop-filter: blur(20px) !important;
-  }
-  
-  .input-box {
-    flex: 1 !important; 
-    min-width: 0 !important; /* Input field screen se baahar nahi jayega */
-    background: rgba(255, 255, 255, 0.05); 
-    border: 1px solid var(--glass-border);
-    padding: 12px 18px !important; 
-    border-radius: 30px; 
-    color: white; 
-    outline: none; 
-    font-size: 16px !important;
-  }
+    /* 1. Zoom Stop for All Inputs */
+    input, textarea, select {
+      font-size: 16px !important;
+    }
 
-  .send-btn {
-    flex-shrink: 0 !important; /* Send button gayab / pichak nahi hoga */
-    width: 44px !important;
-    height: 44px !important;
-    padding: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border-radius: 50% !important;
-  }
+    /* 2. Fixed Input Bar & Visible Send Button */
+    .input-container { 
+      padding: 12px 16px !important; 
+      display: flex !important; 
+      align-items: center !important;
+      gap: 10px !important; 
+      width: 100% !important;
+      box-sizing: border-box !important;
+      border-top: 1px solid var(--glass-border); 
+      background: rgba(3, 7, 18, 0.85) !important; 
+      backdrop-filter: blur(20px) !important;
+    }
+    
+    .input-box {
+      flex: 1 !important; 
+      min-width: 0 !important;
+      background: rgba(255, 255, 255, 0.05); 
+      border: 1px solid var(--glass-border);
+      padding: 12px 18px !important; 
+      border-radius: 30px; 
+      color: white; 
+      outline: none; 
+      font-size: 16px !important;
+    }
 
-  /* 3. Starter Cards & Screen Overflow Fix for Mobile */
-  @media (max-width: 600px) {
-    .messages-container {
-      padding: 14px !important;
+    .send-btn {
+      flex-shrink: 0 !important;
+      width: 44px !important;
+      height: 44px !important;
+      padding: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 50% !important;
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 8px 25px var(--primary-glow);
     }
-    .starter-container {
-      padding: 10px 5px !important;
-      margin: 5px auto !important;
-    }
-    .starter-title {
-      font-size: 20px !important;
-    }
-    .starter-subtitle {
-      font-size: 12px !important;
-      margin-bottom: 14px !important;
-    }
-    /* Mobile me cards 2-columns me fit ho jayenge */
-    .starter-grid {
-      grid-template-columns: 1fr 1fr !important;
-      gap: 10px !important;
-    }
-    .prompt-card {
-      padding: 10px !important;
-      border-radius: 12px !important;
-    }
-    .prompt-card-icon {
-      font-size: 18px !important;
-      margin-bottom: 4px !important;
-    }
-    .prompt-card-title {
-      font-size: 12px !important;
-      line-height: 1.2 !important;
-    }
-    .prompt-card-desc {
-      font-size: 10px !important;
-      line-height: 1.2 !important;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    .msg {
-      max-width: 90% !important;
-    }
-  }
 
-</style>
+    /* 3. Starter Cards & Screen Overflow Fix for Mobile */
+    @media (max-width: 600px) {
+      .messages-container {
+        padding: 14px !important;
+      }
+      .starter-container {
+        padding: 10px 5px !important;
+        margin: 5px auto !important;
+      }
+      .starter-title {
+        font-size: 20px !important;
+      }
+      .starter-subtitle {
+        font-size: 12px !important;
+        margin-bottom: 14px !important;
+      }
+      .starter-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+      }
+      .prompt-card {
+        padding: 10px !important;
+        border-radius: 12px !important;
+      }
+      .prompt-card-icon {
+        font-size: 18px !important;
+        margin-bottom: 4px !important;
+      }
+      .prompt-card-title {
+        font-size: 12px !important;
+        line-height: 1.2 !important;
+      }
+      .prompt-card-desc {
+        font-size: 10px !important;
+        line-height: 1.2 !important;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .msg {
+        max-width: 90% !important;
+      }
+    }
+  </style>
 </head>
 <body>
 
@@ -523,63 +395,38 @@ body {
   <div class="glow-blob glow-blob-2"></div>
   <div class="glow-blob glow-blob-3"></div>
 
-  <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+  <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 
   <div class="sidebar" id="sidebar">
     <div class="logo-container">
       <div class="logo">Artex AI</div>
       <div class="status"><span class="status-dot"></span> Online</div>
     </div>
-    
-    <button class="new-chat-btn" onclick="createNewChat()">
-      <span>+</span> New Chat
-    </button>
-
-    <div class="section-title">Today's Chats</div>
+    <button class="new-chat-btn" onclick="createNewChat()">+ New Chat</button>
+    <div class="section-title">Recent Chats</div>
     <div class="chats-list" id="chats-list"></div>
-
-    <button class="settings-btn" onclick="openApiModal()">⚙️ OpenRouter API Key</button>
+    <button class="api-config-btn" onclick="openApiModal()">🔑 Set API Key</button>
   </div>
 
   <div class="main-chat">
     <div class="chat-header">
       <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-      <span class="header-logo">Artex AI</span>
-      <button class="export-header-btn" onclick="exportChat()" title="Export Current Chat">📥 Export</button>
+      <div class="header-logo">Artex AI</div>
     </div>
-    
+
     <div class="messages-container" id="messages-container"></div>
 
     <div class="input-container">
-      <input type="text" class="input-box" id="user-input" placeholder="Ask Artex AI something..." onkeypress="handleKeyPress(event)">
-      <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
-    </div>
-  </div>
-
-  <div class="global-context-menu" id="global-context-menu">
-    <div class="dropdown-item" onclick="handleRename()">✏️ Rename</div>
-    <div class="dropdown-item" onclick="handleDuplicate()">📋 Duplicate</div>
-    <div class="dropdown-item" onclick="handleExportContext()">📥 Export</div>
-    <div class="dropdown-item delete" onclick="handleDelete()">🗑️ Delete</div>
-  </div>
-
-  <div class="modal-overlay" id="rename-modal">
-    <div class="glass-modal">
-      <div class="modal-title">Rename Chat</div>
-      <p class="modal-desc">Apni chat ka naya naam rakhein:</p>
-      <input type="text" class="modal-input" id="rename-input" placeholder="Enter title...">
-      <div class="modal-actions">
-        <button class="modal-btn cancel" onclick="closeRenameModal()">Cancel</button>
-        <button class="modal-btn save" onclick="saveRename()">Save</button>
-      </div>
+      <input type="text" id="user-input" class="input-box" placeholder="Ask Artex anything..." onkeypress="handleKeyPress(event)" />
+      <button class="send-btn" onclick="sendMessage()">➔</button>
     </div>
   </div>
 
   <div class="modal-overlay" id="api-modal">
     <div class="glass-modal">
-      <div class="modal-title">Set OpenRouter API Key</div>
-      <p class="modal-desc">openrouter.ai se free key le kar paste karein:</p>
-      <input type="password" class="modal-input" id="api-key-input" placeholder="Paste sk-or-v1... Key Here">
+      <div class="modal-title">Enter OpenRouter API Key</div>
+      <div class="modal-desc">Artex AI uses OpenRouter free models. Paste your key below to get started.</div>
+      <input type="password" id="api-key-input" class="modal-input" placeholder="sk-or-v1-..." />
       <div class="modal-actions">
         <button class="modal-btn cancel" onclick="closeApiModal()">Cancel</button>
         <button class="modal-btn save" onclick="saveApiKey()">Save Key</button>
@@ -588,20 +435,33 @@ body {
   </div>
 
   <script>
-    let apiKey = localStorage.getItem('ARTEX_OPENROUTER_KEY') || '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';
-    let chats = JSON.parse(localStorage.getItem('ARTEX_CHATS')) || [
-      {
-        id: 'chat-1',
-        title: 'New Chat 1',
-        messages: []
-      }
+    // INITIAL STATE & STORAGE
+    let chats = JSON.parse(localStorage.getItem('artex_chats')) || [
+      { id: 'chat_default', title: 'New Conversation', messages: [] }
     ];
+    let activeChatId = localStorage.getItem('artex_active_chat') || 'chat_default';
+    let apiKey = localStorage.getItem('artex_api_key') || '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';
 
-    let activeChatId = chats[0]?.id || 'chat-1';
-    let targetChatId = null;
+    // INITIALIZATION
+    window.onload = function() {
+      if (!apiKey) {
+        openApiModal();
+      }
+      renderChatsList();
+      renderMessages();
+      marked.setOptions({
+        highlight: function(code, lang) {
+          if (lang && hljs.getLanguage(lang)) {
+            return hljs.highlight(code, { language: lang }).value;
+          }
+          return hljs.highlightAuto(code).value;
+        }
+      });
+    };
 
     function saveState() {
-      localStorage.setItem('ARTEX_CHATS', JSON.stringify(chats));
+      localStorage.setItem('artex_chats', JSON.stringify(chats));
+      localStorage.setItem('artex_active_chat', activeChatId);
     }
 
     function toggleSidebar() {
@@ -609,7 +469,30 @@ body {
       document.getElementById('overlay').classList.toggle('active');
     }
 
-    function renderChats() {
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('overlay').classList.remove('active');
+    }
+
+    function createNewChat() {
+      const newId = 'chat_' + Date.now();
+      chats.unshift({ id: newId, title: 'New Conversation', messages: [] });
+      activeChatId = newId;
+      saveState();
+      renderChatsList();
+      renderMessages();
+      closeSidebar();
+    }
+
+    function selectChat(id) {
+      activeChatId = id;
+      saveState();
+      renderChatsList();
+      renderMessages();
+      closeSidebar();
+    }
+
+    function renderChatsList() {
       const container = document.getElementById('chats-list');
       container.innerHTML = '';
       chats.forEach(chat => {
@@ -617,8 +500,7 @@ body {
         item.className = `chat-item ${chat.id === activeChatId ? 'active' : ''}`;
         item.onclick = () => selectChat(chat.id);
         item.innerHTML = `
-          <span class="chat-title">${escapeHtml(chat.title)}</span>
-          <button class="dots-btn" onclick="openContextMenu(event, '${chat.id}')">⋮</button>
+          <span class="chat-title">${chat.title}</span>
         `;
         container.appendChild(item);
       });
@@ -627,180 +509,129 @@ body {
     function renderMessages() {
       const container = document.getElementById('messages-container');
       container.innerHTML = '';
-      const currentChat = chats.find(c => c.id === activeChatId);
-      if (!currentChat) return;
 
-      if (!currentChat.messages || currentChat.messages.length === 0) {
-        const starterDiv = document.createElement('div');
-        starterDiv.className = 'starter-container';
-        starterDiv.innerHTML = `
-          <div class="starter-title">Welcome to Artex AI</div>
-          <div class="starter-subtitle">What would you like to explore today?</div>
-          <div class="starter-grid">
-            <div class="prompt-card" onclick="sendStarterPrompt('Give me 5 unique web development project ideas with technical details')">
-              <div class="prompt-card-icon">💡</div>
-              <div class="prompt-card-title">Brainstorm Ideas</div>
-              <div class="prompt-card-desc">Unique web development project ideas for developers</div>
-            </div>
-            <div class="prompt-card" onclick="sendStarterPrompt('Write a Python script to scrape website details using BeautifulSoup')">
-              <div class="prompt-card-icon">💻</div>
-              <div class="prompt-card-title">Write Code</div>
-              <div class="prompt-card-desc">Python web scraping script with clear comments</div>
-            </div>
-            <div class="prompt-card" onclick="sendStarterPrompt('Draft a professional email requesting project feedback from a client')">
-              <div class="prompt-card-icon">📝</div>
-              <div class="prompt-card-title">Draft Email</div>
-              <div class="prompt-card-desc">Polite feedback request email template</div>
-            </div>
-            <div class="prompt-card" onclick="sendStarterPrompt('Explain Quantum Computing in simple terms for a beginner')">
-              <div class="prompt-card-icon">🚀</div>
-              <div class="prompt-card-title">Explain Concept</div>
-              <div class="prompt-card-desc">Quantum Computing explained in easy terms</div>
+      const currentChat = chats.find(c => c.id === activeChatId);
+      if (!currentChat || currentChat.messages.length === 0) {
+        container.innerHTML = `
+          <div class="starter-container">
+            <div class="starter-title">Welcome to Artex AI</div>
+            <div class="starter-subtitle">How can I assist you today?</div>
+            <div class="starter-grid">
+              <div class="prompt-card" onclick="useStarterPrompt('Write a Python script to scrape data')">
+                <div class="prompt-card-icon">⚡</div>
+                <div class="prompt-card-title">Coding Assistant</div>
+                <div class="prompt-card-desc">Write Python scripts, debug errors & build apps</div>
+              </div>
+              <div class="prompt-card" onclick="useStarterPrompt('Explain Quantum Physics simply')">
+                <div class="prompt-card-icon">🧠</div>
+                <div class="prompt-card-title">Explain Concepts</div>
+                <div class="prompt-card-desc">Learn complex topics in simple terms</div>
+              </div>
+              <div class="prompt-card" onclick="useStarterPrompt('Draft a professional email to my boss')">
+                <div class="prompt-card-icon">📝</div>
+                <div class="prompt-card-title">Write & Edit</div>
+                <div class="prompt-card-desc">Draft emails, essays, and creative stories</div>
+              </div>
+              <div class="prompt-card" onclick="useStarterPrompt('Give me 5 business ideas for 2026')">
+                <div class="prompt-card-icon">💡</div>
+                <div class="prompt-card-title">Brainstorming</div>
+                <div class="prompt-card-desc">Generate innovative ideas & strategies</div>
+              </div>
             </div>
           </div>
         `;
-        container.appendChild(starterDiv);
         return;
       }
 
       currentChat.messages.forEach(msg => {
-        const bubble = document.createElement('div');
-        bubble.className = `msg ${msg.sender === 'user' ? 'user-msg' : 'ai-msg'}`;
-        
+        const div = document.createElement('div');
+        div.className = `msg ${msg.sender === 'user' ? 'user-msg' : 'ai-msg'}`;
         if (msg.sender === 'user') {
-          bubble.innerText = msg.text;
+          div.textContent = msg.text;
         } else {
-          bubble.innerHTML = marked.parse(msg.text);
-
-          bubble.querySelectorAll('pre').forEach(pre => {
-            const codeBlock = pre.querySelector('code');
-            if (codeBlock) {
-              const langClass = Array.from(codeBlock.classList).find(c => c.startsWith('language-'));
-              const language = langClass ? langClass.replace('language-', '') : 'Code';
-              
-              if (!pre.querySelector('.code-header')) {
-                const header = document.createElement('div');
-                header.className = 'code-header';
-                header.innerHTML = `
-                  <span>${language}</span>
-                  <button class="copy-code-btn" onclick="copyCode(this)">Copy</button>
-                `;
-                pre.insertBefore(header, pre.firstChild);
-              }
-              hljs.highlightElement(codeBlock);
-            }
-          });
+          div.innerHTML = marked.parse(msg.text);
         }
-        container.appendChild(bubble);
+        container.appendChild(div);
       });
+
       container.scrollTop = container.scrollHeight;
     }
 
-    function sendStarterPrompt(promptText) {
-      document.getElementById('user-input').value = promptText;
+    function useStarterPrompt(text) {
+      document.getElementById('user-input').value = text;
       sendMessage();
     }
 
-    function copyCode(btn) {
-      const pre = btn.closest('pre');
-      const code = pre.querySelector('code').innerText;
-      navigator.clipboard.writeText(code).then(() => {
-        btn.innerText = 'Copied!';
-        setTimeout(() => { btn.innerText = 'Copy'; }, 2000);
-      });
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
     }
 
-    function exportChat(chatId = activeChatId) {
-      const chat = chats.find(c => c.id === chatId);
-      if (!chat || !chat.messages || chat.messages.length === 0) {
-        alert("Is chat me export karne ke liye koi messages nahi hain!");
+    function openApiModal() {
+      document.getElementById('api-modal').classList.add('active');
+      if (apiKey) document.getElementById('api-key-input').value = apiKey;
+    }
+
+    function closeApiModal() {
+      document.getElementById('api-modal').classList.remove('active');
+    }
+
+    function saveApiKey() {
+      const val = document.getElementById('api-key-input').value.trim();
+      if (val) {
+        apiKey = val;
+        localStorage.setItem('artex_api_key', apiKey);
+        closeApiModal();
+      }
+    }
+
+    // UPDATED BUG-FREE SEND MESSAGE WITH FULL CHAT MEMORY
+    async function sendMessage() {
+      const input = document.getElementById('user-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      if (!apiKey) {
+        alert("Pehle OpenRouter API Key add karein!");
+        openApiModal();
         return;
       }
 
-      let exportText = `=======================================\n`;
-      exportText += ` Artex AI - Conversation Export\n`;
-      exportText += ` Title: ${chat.title}\n`;
-      exportText += ` Date: ${new Date().toLocaleString()}\n`;
-      exportText += `=======================================\n\n`;
+      const currentChat = chats.find(c => c.id === activeChatId);
+      if (!currentChat) return;
 
-      chat.messages.forEach((msg) => {
-        const sender = msg.sender === 'user' ? 'YOU' : 'ARTEX AI';
-        exportText += `[${sender}]:\n${msg.text}\n\n---------------------------------------\n\n`;
-      });
+      // 1. Title Auto-update on first message
+      if (currentChat.messages.length === 0) {
+        currentChat.title = text.length > 20 ? text.substring(0, 20) + '...' : text;
+        renderChatsList();
+      }
 
-      const blob = new Blob([exportText], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${chat.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_export.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    function handleExportContext() {
-      if (targetChatId) exportChat(targetChatId);
-    }
-
-    function selectChat(id) {
-      activeChatId = id;
-      renderChats();
-      renderMessages();
-    }
-
-    function createNewChat() {
-      const newId = 'chat-' + Date.now();
-      chats.unshift({
-        id: newId,
-        title: `New Chat ${chats.length + 1}`,
-        messages: []
-      });
-      activeChatId = newId;
+      // 2. Add user message
+      currentChat.messages.push({ sender: 'user', text: text });
+      input.value = '';
       saveState();
-      renderChats();
       renderMessages();
-    }
 
-    async function sendMessage() {
-  const input = document.getElementById('user-input');
-  const text = input.value.trim();
-  if (!text) return;
+      // 3. Add loading state
+      const loadingMsg = { sender: 'ai', text: 'Artex is thinking...' };
+      currentChat.messages.push(loadingMsg);
+      renderMessages();
 
-  if (!apiKey) {
-    alert("Pehle side menu se OpenRouter API Key add karein!");
-    openApiModal();
-    return;
-  }
+      const cleanKey = apiKey.trim();
 
-  const currentChat = chats.find(c => c.id === activeChatId);
-  if (!currentChat) return;
+      const freeModels = [
+        "google/gemini-2.0-flash-exp:free",
+        "deepseek/deepseek-r1:free",
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "mistralai/mistral-7b-instruct:free",
+        "openrouter/auto"
+      ];
 
-  // 1. User message save & UI update
-  currentChat.messages.push({ sender: 'user', text: text });
-  input.value = '';
-  saveState();
-  renderMessages();
+      let aiResponseText = null;
+      let lastErr = '';
 
-  // 2. Loading state display
-  const loadingMsg = { sender: 'ai', text: 'Artex is thinking...' };
-  currentChat.messages.push(loadingMsg);
-  renderMessages();
-
-  const cleanKey = apiKey.trim();
-
-  const freeModels = [
-    "google/gemini-2.0-flash-exp:free",
-    "deepseek/deepseek-r1:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "mistralai/mistral-7b-instruct:free",
-    "openrouter/auto"
-  ];
-
-  let aiResponseText = null;
-  let lastErr = '';
-
-  const systemInstruction = `You are Artex AI created by Aditya Yadav from India. 
+      const systemInstruction = `You are Artex AI created by Aditya Yadav from India. 
 Always structure your responses neatly using Markdown headings (#, ##, ###) and bullet points.
 
 CRITICAL RULES:
@@ -812,161 +643,63 @@ CRITICAL RULES:
 
 4. FATHER INFO (Surendra Kumar): If anyone asks about your developer's father or mentions 'Surendra Kumar', state clearly that Surendra Kumar Ji is the deeply respected father of your developer/owner (Aditya Yadav). ALWAYS refer to him as 'Surendra Kumar Ji'. If the user addresses him or types his name without 'Ji', politely remind them to address him respectfully with 'Ji' (e.g., Surendra Kumar Ji).`;
 
-  // 3. Clean Chat History (Loading message & error messages filtered out)
-  const conversationHistory = currentChat.messages
-    .filter(msg => msg.text && !msg.text.includes('⚠️') && msg.text !== 'Artex is thinking...')
-    .map(msg => ({
-      role: msg.sender === 'user' ? 'user' : 'assistant',
-      content: msg.text
-    }));
+      // 4. Construct Clean Conversation History
+      const conversationHistory = currentChat.messages
+        .filter(msg => msg.text && !msg.text.includes('⚠️') && msg.text !== 'Artex is thinking...')
+        .map(msg => ({
+          role: msg.sender === 'user' ? 'user' : 'assistant',
+          content: msg.text
+        }));
 
-  const apiMessages = [
-    { role: "system", content: systemInstruction },
-    ...conversationHistory
-  ];
+      const apiMessages = [
+        { role: "system", content: systemInstruction },
+        ...conversationHistory
+      ];
 
-  // 4. Try Free Models One By One
-  for (const modelName of freeModels) {
-    try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${cleanKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: modelName, // Dynamic model usage
-          messages: apiMessages
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.choices && data.choices[0]?.message?.content) {
-        aiResponseText = data.choices[0].message.content;
-        break; // Success! Loop stop karein
-      } else if (data.error) {
-        lastErr = `[${modelName}] ${data.error.message || JSON.stringify(data.error)}`;
-      }
-    } catch (err) {
-      lastErr = err.message;
-    }
-  }
-
-  // 5. Loading message remove karein
-  currentChat.messages.pop();
-
-  // 6. Response ya Error Push Karein
-  if (aiResponseText) {
-    currentChat.messages.push({ sender: 'ai', text: aiResponseText });
-  } else {
-    currentChat.messages.push({ 
-      sender: 'ai', 
-      text: `⚠️ OpenRouter Error: All models failed. Last detail: ${lastErr}` 
-    });
-  }
-
-  saveState();
-  renderMessages();
-    }
-    
-
+      // 5. Try Free Models iteratively
       for (const modelName of freeModels) {
-        // 1. Aapke currentChat se history array banayein (Loading msg ko skip karke)
-const conversationHistory = (currentChat && currentChat.messages) 
-  ? currentChat.messages
-      .filter(msg => msg.text && !msg.text.includes('⚠️')) // Error messages ko history me na bhejein
-      .map(msg => ({
-        role: msg.sender === 'user' ? 'user' : 'assistant',
-        content: msg.text
-      }))
-  : [];
+        try {
+          const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${cleanKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: modelName,
+              messages: apiMessages
+            })
+          });
 
-// 2. System Instruction + Full Chat History
-const apiMessages = [
-  { role: "system", content: systemInstruction },
-  ...conversationHistory
-];
+          const data = await response.json();
 
-// 3. OpenRouter API ko poori history bhein
-const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-  method: "POST",
-  headers: {
-    "Authorization": `Bearer ${apiKey}`,
-    "Content-Type": "application/json"
-
-
-    function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
-
-    function openContextMenu(event, id) {
-      event.stopPropagation();
-      targetChatId = id;
-      const menu = document.getElementById('global-context-menu');
-      const btn = event.currentTarget;
-      const rect = btn.getBoundingClientRect();
-      menu.style.top = `${rect.bottom + 4}px`;
-      menu.style.left = `${Math.min(rect.left - 100, window.innerWidth - 175)}px`;
-      menu.classList.add('show');
-    }
-
-    window.addEventListener('click', () => {
-      document.getElementById('global-context-menu').classList.remove('show');
-    });
-
-    function handleRename() {
-      const chat = chats.find(c => c.id === targetChatId);
-      if (!chat) return;
-      document.getElementById('rename-input').value = chat.title;
-      document.getElementById('rename-modal').classList.add('active');
-    }
-    function closeRenameModal() { document.getElementById('rename-modal').classList.remove('active'); }
-    function saveRename() {
-      const newTitle = document.getElementById('rename-input').value.trim();
-      if (newTitle) {
-        const chat = chats.find(c => c.id === targetChatId);
-        if (chat) { chat.title = newTitle; saveState(); renderChats(); }
+          if (response.ok && data.choices && data.choices[0]?.message?.content) {
+            aiResponseText = data.choices[0].message.content;
+            break;
+          } else if (data.error) {
+            lastErr = `[${modelName}] ${data.error.message || JSON.stringify(data.error)}`;
+          }
+        } catch (err) {
+          lastErr = err.message;
+        }
       }
-      closeRenameModal();
-    }
 
-    function handleDuplicate() {
-      const chat = chats.find(c => c.id === targetChatId);
-      if (!chat) return;
-      const newId = 'chat-' + Date.now();
-      chats.push({
-        id: newId,
-        title: `${chat.title} (Copy)`,
-        messages: JSON.parse(JSON.stringify(chat.messages))
-      });
-      activeChatId = newId;
-      saveState(); renderChats(); renderMessages();
-    }
+      // 6. Remove loading message
+      currentChat.messages.pop();
 
-    function handleDelete() {
-      if (chats.length <= 1) { alert("Aakhri chat delete nahi kar sakte!"); return; }
-      chats = chats.filter(c => c.id !== targetChatId);
-      if (activeChatId === targetChatId) activeChatId = chats[0].id;
-      saveState(); renderChats(); renderMessages();
-    }
+      // 7. Store final response
+      if (aiResponseText) {
+        currentChat.messages.push({ sender: 'ai', text: aiResponseText });
+      } else {
+        currentChat.messages.push({ 
+          sender: 'ai', 
+          text: `⚠️ OpenRouter Error: All models failed. Last detail: ${lastErr}` 
+        });
+      }
 
-    function openApiModal() {
-      document.getElementById('api-key-input').value = apiKey;
-      document.getElementById('api-modal').classList.add('active');
+      saveState();
+      renderMessages();
     }
-    function closeApiModal() { document.getElementById('api-modal').classList.remove('active'); }
-    function saveApiKey() {
-      const key = document.getElementById('api-key-input').value.trim();
-      apiKey = key;
-      localStorage.setItem('ARTEX_OPENROUTER_KEY', key);
-      closeApiModal();
-      alert("OpenRouter API Key Saved!");
-    }
-
-    function escapeHtml(str) { return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-
-    renderChats();
-    renderMessages();
   </script>
-
 </body>
 </html>
