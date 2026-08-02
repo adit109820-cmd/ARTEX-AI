@@ -465,6 +465,16 @@
   background: rgba(248, 113, 113, 0.15);
   color: #ef4444;
 }
+/* Custom Delete Button Style */
+.modal-btn.delete-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+.modal-btn.delete-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
     
   </style>
 </head>
@@ -525,6 +535,28 @@
     <span>🗑️</span> <span>Delete</span>
   </div>
   </div>
+  <div class="modal-overlay" id="renameModal" onclick="closeRenameModal()">
+  <div class="glass-modal" onclick="event.stopPropagation()">
+    <div class="modal-title">✏️ Rename Chat</div>
+    <div class="modal-desc">Apni chat ke liye naya naam daalein:</div>
+    <input type="text" id="renameInput" class="modal-input" placeholder="Chat title..." onkeypress="if(event.key==='Enter') saveRename()" />
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeRenameModal()">Cancel</button>
+      <button class="modal-btn save" onclick="saveRename()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteModal" onclick="closeDeleteModal()">
+  <div class="glass-modal" onclick="event.stopPropagation()">
+    <div class="modal-title" style="color: #f87171;">🗑️ Delete Chat?</div>
+    <div class="modal-desc" id="deleteModalDesc">Kya aap is chat ko permanent delete karna chahte hain?</div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeDeleteModal()">Cancel</button>
+      <button class="modal-btn delete-btn" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
   
   <script>
     // INITIAL STATE & STORAGE
@@ -831,7 +863,7 @@ function closeChatPopover() {
 // Automatically close when clicking anywhere else on screen
 document.addEventListener('click', closeChatPopover);
 
-// 3. Action Handler
+// Popover Menu Action Handler
 function handleMenuAction(action) {
   if (!targetChatId) return;
   const chatId = targetChatId;
@@ -839,32 +871,76 @@ function handleMenuAction(action) {
 
   setTimeout(() => {
     if (action === 'rename') {
-      const chat = chats.find(c => c.id === chatId);
-      if (!chat) return;
-      const newTitle = prompt("Naya naam likhein:", chat.title);
-      if (newTitle && newTitle.trim()) {
-        chat.title = newTitle.trim();
-        saveState();
-        renderChatsList();
-      }
+      openRenameModal(chatId);
     } else if (action === 'duplicate') {
       duplicateChat(chatId);
     } else if (action === 'export') {
       exportChat(chatId);
     } else if (action === 'delete') {
-      const chat = chats.find(c => c.id === chatId);
-      if (chat && confirm(`Kya aap '${chat.title}' ko delete karna chahte hain?`)) {
-        chats = chats.filter(c => c.id !== chatId);
-        if (activeChatId === chatId) {
-          activeChatId = chats.length > 0 ? chats[0].id : 'chat_default';
-        }
-        saveState();
-        renderChatsList();
-        renderMessages();
-      }
+      openDeleteModal(chatId);
     }
-  }, 100);
+  }, 120);
 }
+
+// Rename Modal Functions
+function openRenameModal(chatId) {
+  targetChatId = chatId;
+  const chat = chats.find(c => c.id === chatId);
+  if (!chat) return;
+
+  const input = document.getElementById('renameInput');
+  input.value = chat.title;
+  
+  const modal = document.getElementById('renameModal');
+  modal.classList.add('active');
+  setTimeout(() => input.focus(), 100);
+}
+
+function closeRenameModal() {
+  document.getElementById('renameModal').classList.remove('active');
+}
+
+function saveRename() {
+  if (!targetChatId) return;
+  const chat = chats.find(c => c.id === targetChatId);
+  const newTitle = document.getElementById('renameInput').value.trim();
+
+  if (chat && newTitle) {
+    chat.title = newTitle;
+    saveState();
+    renderChatsList();
+  }
+  closeRenameModal();
+}
+
+// Delete Modal Functions
+function openDeleteModal(chatId) {
+  targetChatId = chatId;
+  const chat = chats.find(c => c.id === chatId);
+  if (!chat) return;
+
+  document.getElementById('deleteModalDesc').textContent = `'${chat.title}' chat aur iski poori history delete ho jayegi. Kya aap sure hain?`;
+  document.getElementById('deleteModal').classList.add('active');
+}
+
+function closeDeleteModal() {
+  document.getElementById('deleteModal').classList.remove('active');
+}
+
+function confirmDelete() {
+  if (!targetChatId) return;
+  
+  chats = chats.filter(c => c.id !== targetChatId);
+  if (activeChatId === targetChatId) {
+    activeChatId = chats.length > 0 ? chats[0].id : 'chat_default';
+  }
+  
+  saveState();
+  renderChatsList();
+  renderMessages();
+  closeDeleteModal();
+}
+    
     </script>
 </body>
 </html>
