@@ -516,11 +516,107 @@
   color: #38bdf8;
   border-color: #38bdf8;
 }
+/* INTRO SPLASH SCREEN STYLES */
+#app-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #090d16;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999999;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s ease;
+}
+
+#app-loader.fade-out {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+/* ANIMATED GLOWING LOGO */
+.animated-logo {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: #38bdf8;
+  border-right-color: #818cf8;
+  border-bottom-color: #c084fc;
+  animation: logoSpin 1.4s linear infinite;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+}
+
+.logo-core {
+  font-size: 28px;
+  animation: pulseGlow 1.5s ease-in-out infinite alternate;
+}
+
+.loader-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 1px;
+  animation: textFade 1.2s ease-in-out infinite alternate;
+}
+
+.loader-title span {
+  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ANIMATIONS KEYFRAMES */
+@keyframes logoSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulseGlow {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  100% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 12px #38bdf8); }
+}
+
+@keyframes textFade {
+  0% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+    
     
   </style>
 </head>
 <body>
-
+  <div id="app-loader">
+  <div class="loader-content">
+    <div class="animated-logo">
+      <div class="logo-ring"></div>
+      <div class="logo-core">✨</div>
+    </div>
+    <h1 class="loader-title">Artex <span>AI</span></h1>
+  </div>
+  </div>
+  
   <div class="glow-blob glow-blob-1"></div>
   <div class="glow-blob glow-blob-2"></div>
   <div class="glow-blob glow-blob-3"></div>
@@ -1022,7 +1118,19 @@ function attachCopyButtons() {
 
     pre.appendChild(btn);
   });
- }   
+ }
+ // Auto Hide Intro Splash Screen After Loading
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const loader = document.getElementById('app-loader');
+    if (loader) {
+      loader.classList.add('fade-out');
+      // Animation poori hone par DOM se remove kar do
+      setTimeout(() => loader.remove(), 600);
+    }
+  }, 1800); // 1.8 Seconds tak splash screen dikhega
+});
+    
     </script>
 </body>
 </html>
