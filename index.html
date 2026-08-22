@@ -626,6 +626,13 @@
     transform: translateX(0);
   }
 }
+/* Header ko top par lock karne ke liye */
+header, .header, .top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #070913; /* Aapka main dark background color */
+}
     
   </style>
 </head>
@@ -854,18 +861,26 @@
     container.appendChild(div);
   });
 
-  // SMART SCROLL FIX: User ke aakhiri message par focus rakho
+    // SAFE SCROLL FIX: Sirf messages container scroll hoga, Header bilkul nahi hilege
   const userMessages = container.querySelectorAll('.user-msg');
   if (userMessages.length > 0) {
     const lastUserMsg = userMessages[userMessages.length - 1];
-    // User ka message screen ke top par dikhega aur AI reply shuru se visible hoga
-    lastUserMsg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const targetScroll = lastUserMsg.offsetTop - 15; // Message top par aayega thode gap ke sath
+    
+    container.scrollTo({
+      top: targetScroll,
+      behavior: 'smooth'
+    });
   } else {
-    container.scrollTop = container.scrollHeight;
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: 'smooth'
+    });
   }
 
   attachCopyButtons();
     }
+    
     
 
     function useStarterPrompt(text) {
