@@ -807,56 +807,66 @@
     
 
     function renderMessages() {
-      const container = document.getElementById('messages-container');
-      container.innerHTML = '';
+  const container = document.getElementById('messages-container');
+  container.innerHTML = '';
 
-      const currentChat = chats.find(c => c.id === activeChatId);
-      if (!currentChat || currentChat.messages.length === 0) {
-        container.innerHTML = `
-          <div class="starter-container">
-            <div class="starter-title">Welcome to Artex AI</div>
-            <div class="starter-subtitle">How can I assist you today?</div>
-            <div class="starter-grid">
-              <div class="prompt-card" onclick="useStarterPrompt('Write a Python script to scrape data')">
-                <div class="prompt-card-icon">⚡</div>
-                <div class="prompt-card-title">Coding Assistant</div>
-                <div class="prompt-card-desc">Write Python scripts, debug errors & build apps</div>
-              </div>
-              <div class="prompt-card" onclick="useStarterPrompt('Explain Quantum Physics simply')">
-                <div class="prompt-card-icon">🧠</div>
-                <div class="prompt-card-title">Explain Concepts</div>
-                <div class="prompt-card-desc">Learn complex topics in simple terms</div>
-              </div>
-              <div class="prompt-card" onclick="useStarterPrompt('Draft a professional email to my boss')">
-                <div class="prompt-card-icon">📝</div>
-                <div class="prompt-card-title">Write & Edit</div>
-                <div class="prompt-card-desc">Draft emails, essays, and creative stories</div>
-              </div>
-              <div class="prompt-card" onclick="useStarterPrompt('Give me 5 business ideas for 2026')">
-                <div class="prompt-card-icon">💡</div>
-                <div class="prompt-card-title">Brainstorming</div>
-                <div class="prompt-card-desc">Generate innovative ideas & strategies</div>
-              </div>
-            </div>
+  const currentChat = chats.find(c => c.id === activeChatId);
+  if (!currentChat || currentChat.messages.length === 0) {
+    container.innerHTML = `
+      <div class="starter-container">
+        <div class="starter-title">Welcome to Artex AI</div>
+        <div class="starter-subtitle">How can I assist you today?</div>
+        <div class="starter-grid">
+          <div class="prompt-card" onclick="useStarterPrompt('Write a Python script to scrape data')">
+            <div class="prompt-card-icon">⚡</div>
+            <div class="prompt-card-title">Coding Assistant</div>
+            <div class="prompt-card-desc">Write Python scripts, debug errors & build apps</div>
           </div>
-        `;
-        return;
-      }
+          <div class="prompt-card" onclick="useStarterPrompt('Explain Quantum Physics simply')">
+            <div class="prompt-card-icon">🧠</div>
+            <div class="prompt-card-title">Explain Concepts</div>
+            <div class="prompt-card-desc">Learn complex topics in simple terms</div>
+          </div>
+          <div class="prompt-card" onclick="useStarterPrompt('Draft a professional email to my boss')">
+            <div class="prompt-card-icon">📝</div>
+            <div class="prompt-card-title">Write & Edit</div>
+            <div class="prompt-card-desc">Draft emails, essays, and creative stories</div>
+          </div>
+          <div class="prompt-card" onclick="useStarterPrompt('Give me 5 business ideas for 2026')">
+            <div class="prompt-card-icon">💡</div>
+            <div class="prompt-card-title">Brainstorming</div>
+            <div class="prompt-card-desc">Generate innovative ideas & strategies</div>
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
 
-      currentChat.messages.forEach(msg => {
-        const div = document.createElement('div');
-        div.className = `msg ${msg.sender === 'user' ? 'user-msg' : 'ai-msg'}`;
-        if (msg.sender === 'user') {
-          div.textContent = msg.text;
-        } else {
-          div.innerHTML = marked.parse(msg.text);
-        }
-        container.appendChild(div);
-      });
-
-      container.scrollTop = container.scrollHeight;
-      attachCopyButtons();
+  currentChat.messages.forEach(msg => {
+    const div = document.createElement('div');
+    div.className = `msg ${msg.sender === 'user' ? 'user-msg' : 'ai-msg'}`;
+    if (msg.sender === 'user') {
+      div.textContent = msg.text;
+    } else {
+      div.innerHTML = marked.parse(msg.text);
     }
+    container.appendChild(div);
+  });
+
+  // SMART SCROLL FIX: User ke aakhiri message par focus rakho
+  const userMessages = container.querySelectorAll('.user-msg');
+  if (userMessages.length > 0) {
+    const lastUserMsg = userMessages[userMessages.length - 1];
+    // User ka message screen ke top par dikhega aur AI reply shuru se visible hoga
+    lastUserMsg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    container.scrollTop = container.scrollHeight;
+  }
+
+  attachCopyButtons();
+    }
+    
 
     function useStarterPrompt(text) {
       document.getElementById('user-input').value = text;
