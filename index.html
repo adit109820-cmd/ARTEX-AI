@@ -999,12 +999,12 @@ const conversationHistory = currentChat.messages
               "Content-Type": "application/json"
             },
             body: JSON.stringify({
-              model: modelName,
-              messages: apiMessages,
-              max_tokens: 3000 // <-- Yahan max_tokens limit lagaya gaya hai
-            })
+  // Ye 100% free model hai, isme credits ki limit nahi aayegi
+  model: "meta-llama/llama-3.1-8b-instruct:free", 
+  messages: [ ... ],
+  max_tokens: 1000 // Tokens bhi kam karke 1000 kar dein
+})
           });
-
           const data = await response.json();
 
           if (response.ok && data.choices && data.choices[0]?.message?.content) {
