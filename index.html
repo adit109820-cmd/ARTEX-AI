@@ -912,52 +912,53 @@ header, .header, .top-nav {
       }
     }
 
-    // UPDATED BUG-FREE SEND MESSAGE WITH FULL CHAT MEMORY
     async function sendMessage() {
-      const input = document.getElementById('user-input');
-      const text = input.value.trim();
-      if (!text) return;
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
 
-      if (!apiKey) {
-        alert("Pehle OpenRouter API Key add karein!");
-        openApiModal();
-        return;
-      }
+  if (!apiKey) {
+    alert("Pehle OpenRouter API Key add karein!");
+    openApiModal();
+    return;
+  }
 
-      const currentChat = chats.find(c => c.id === activeChatId);
-      if (!currentChat) return;
+  const currentChat = chats.find(c => c.id === activeChatId);
+  if (!currentChat) return;
 
-      // 1. Title Auto-update on first message
-      if (currentChat.messages.length === 0) {
-        currentChat.title = text.length > 20 ? text.substring(0, 20) + '...' : text;
-        renderChatsList();
-      }
+  // 1. Title Auto-update on first message
+  if (currentChat.messages.length === 0) {
+    currentChat.title = text.length > 20 ? text.substring(0, 20) + '...' : text;
+    renderChatsList();
+  }
 
-      // 2. Add user message
-      currentChat.messages.push({ sender: 'user', text: text });
-      input.value = '';
-      saveState();
-      renderMessages();
+  // 2. Add user message
+  currentChat.messages.push({ sender: 'user', text: text });
+  input.value = '';
+  saveState();
+  renderMessages();
 
-      // 3. Add loading state
-      const loadingMsg = { sender: 'ai', text: 'Artex is thinking...' };
-      currentChat.messages.push(loadingMsg);
-      renderMessages();
+  // 3. Add loading state
+  const loadingMsg = { sender: 'ai', text: 'Artex is thinking...' };
+  currentChat.messages.push(loadingMsg);
+  renderMessages();
 
-      const cleanKey = apiKey.trim();
+  const cleanKey = apiKey.trim();
 
-      const freeModels = [
-        "google/gemini-2.0-flash-exp:free",
-        "deepseek/deepseek-r1:free",
-        "meta-llama/llama-3.3-70b-instruct:free",
-        "mistralai/mistral-7b-instruct:free",
-        "openrouter/auto"
-      ];
+  // Updated 100% Free Active Models Array
+  const freeModels = [
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "meta-llama/llama-3.1-8b-instruct:free",
+    "google/gemma-2-9b-it:free",
+    "qwen/qwen-2.5-7b-instruct:free",
+    "deepseek/deepseek-r1:free",
+    "mistralai/mistral-7b-instruct:free"
+  ];
 
-      let aiResponseText = null;
-      let lastErr = '';
+  let aiResponseText = null;
+  let lastErr = '';
 
-        const systemInstruction = `You are Artex AI created by Aditya Yadav from India. 
+  const systemInstruction = `You are Artex AI created by Aditya Yadav from India. 
 Always communicate in a warm, polite, friendly, and engaging tone. Make the user feel welcome, comfortable, and respected in every interaction.
 Use Markdown headings (#, ##, ###) and bullet points to structure your answers neatly.
 
@@ -973,67 +974,67 @@ CRITICAL RULES:
 3. MOTHER INFO (Maya Devi): If anyone asks about your developer's mother or mentions 'Maya Devi', state clearly and respectfully that Maya Devi Ji is the deeply respected mother of your developer/owner (Aditya Yadav). ALWAYS refer to her as 'Maya Devi Ji'. If the user addresses her or types her name without 'Ji', politely remind them to address her respectfully with 'Ji' (e.g., Maya Devi Ji). ONLY if specifically asked about her location, place, or where she is from, mention that she is from India.
 
 4. FATHER INFO (Surendra Kumar): If anyone asks about your developer's father or mentions 'Surendra Kumar', state clearly and respectfully that Surendra Kumar Ji is the deeply respected father of your developer/owner (Aditya Yadav). ALWAYS refer to him as 'Surendra Kumar Ji'. If the user addresses him or types his name without 'Ji', politely remind them to address him respectfully with 'Ji' (e.g., Surendra Kumar Ji). ONLY if specifically asked about his location, place, or where he is from, mention that he is from India.`;
-      
-      // 3. Clean Chat History (Sirf aakhiri 10 messages rakhega)
-const conversationHistory = currentChat.messages
-  .filter(msg => msg.text && !msg.text.includes('⚠️') && msg.text !== 'Artex is thinking...')
-  .slice(-10) // <-- Yeh add kiya taaki history limit me rahe
-  .map(msg => ({
-    role: msg.sender === 'user' ? 'user' : 'assistant',
-    content: msg.text
-  }));
-      
 
-      const apiMessages = [
-        { role: "system", content: systemInstruction },
-        ...conversationHistory
-      ];
+  // 4. Clean Chat History (Sirf last 10 messages)
+  const conversationHistory = currentChat.messages
+    .filter(msg => msg.text && !msg.text.includes('⚠️') && msg.text !== 'Artex is thinking...')
+    .slice(-10)
+    .map(msg => ({
+      role: msg.sender === 'user' ? 'user' : 'assistant',
+      content: msg.text
+    }));
 
-      // 5. Try Free Models iteratively
-      for (const modelName of freeModels) {
-        try {
-          const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${cleanKey}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-  // Ye 100% free model hai, isme credits ki limit nahi aayegi
-  model: "meta-llama/llama-3.1-8b-instruct:free", 
-  messages: [ ... ],
-  max_tokens: 1000 // Tokens bhi kam karke 1000 kar dein
-})
-          });
-          const data = await response.json();
+  const apiMessages = [
+    { role: "system", content: systemInstruction },
+    ...conversationHistory
+  ];
 
-          if (response.ok && data.choices && data.choices[0]?.message?.content) {
-            aiResponseText = data.choices[0].message.content;
-            break;
-          } else if (data.error) {
-            lastErr = `[${modelName}] ${data.error.message || JSON.stringify(data.error)}`;
-          }
-        } catch (err) {
-          lastErr = err.message;
-        }
-      }
+  // 5. Try Free Models Iteratively
+  for (const modelName of freeModels) {
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${cleanKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: apiMessages,
+          max_tokens: 1000
+        })
+      });
 
-      // 6. Remove loading message
-      currentChat.messages.pop();
+      const data = await response.json();
 
-      // 7. Store final response
-      if (aiResponseText) {
-        currentChat.messages.push({ sender: 'ai', text: aiResponseText });
+      if (response.ok && data.choices && data.choices[0]?.message?.content) {
+        aiResponseText = data.choices[0].message.content;
+        break;
       } else {
-        currentChat.messages.push({ 
-          sender: 'ai', 
-          text: `⚠️ OpenRouter Error: All models failed. Last detail: ${lastErr}` 
-        });
+        lastErr = data.error?.message || "Model limit reached or failed";
       }
-
-      saveState();
-      renderMessages();
+    } catch (err) {
+      lastErr = err.message;
     }
+  }
+
+  // 6. Remove loading indicator
+  currentChat.messages.pop();
+
+  // 7. Output Response
+  if (aiResponseText) {
+    currentChat.messages.push({ sender: 'ai', text: aiResponseText });
+  } else {
+    currentChat.messages.push({
+      sender: 'ai',
+      text: `⚠️ OpenRouter Error: ${lastErr}. Free limit reach ho sakti hai, kripya thodi der baad try karein ya key check karein.`
+    });
+  }
+
+  saveState();
+  renderMessages();
+    }
+    
     let targetChatId = null;
 
 // 1. Position Popover Exactly Next to 3-Dots Button
