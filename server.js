@@ -8,15 +8,15 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Public folder se index.html serve hoga
-app.use(express.static(path.join(__dirname, 'public')));
+// Direct root directory se static files serve karne ke liye
+app.use(express.static(__dirname));
 
 app.post('/api/chat', async (req, res) => {
   const { messages } = req.body;
   const apiKey = process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
-    return res.status(500).json({ error: "Server par API Key set nahi hai." });
+    return res.status(500).json({ error: "Server par OPENROUTER_API_KEY set nahi hai." });
   }
 
   const freeModels = [
@@ -65,11 +65,11 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+// Direct root level se index.html serve karne ke liye
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
