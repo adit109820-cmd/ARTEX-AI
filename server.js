@@ -23,8 +23,7 @@ app.post('/api/chat', async (req, res) => {
     "google/gemma-2-9b-it:free",
     "meta-llama/llama-3.3-70b-instruct:free",
     "meta-llama/llama-3.1-8b-instruct:free",
-    "qwen/qwen-2.5-7b-instruct:free",
-    "deepseek/deepseek-r1:free"
+    "qwen/qwen-2.5-7b-instruct:free"
   ];
 
   let aiResponseText = null;
