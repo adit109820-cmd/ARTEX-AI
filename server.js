@@ -8,86 +8,119 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Root level static files serve karne ke liye
+// Direct root directory se static files serve karein
 app.use(express.static(__dirname));
 
 app.post('/api/chat', async (req, res) => {
   const { messages } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : null;
 
-  if (!apiKey) {
-    return res.status(500).json({ error: "Server par GEMINI_API_KEY set nahi hai. Render Dashboard check karein." });
-  }
+  const groqKey = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.trim() : null;
+  const geminiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : null;
+  const openrouterKey = process.env.OPENROUTER_API_KEY ? process.env.OPENROUTER_API_KEY.trim() : null;
 
-  // System instruction aur conversation history prepare karein
-  let systemText = "";
-  const contents = [];
+  let lastError = "";
 
-  if (Array.isArray(messages)) {
-    for (const msg of messages) {
-      if (msg.role === 'system') {
-        systemText += (systemText ? "\n" : "") + msg.content;
-      } else {
-        contents.push({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: String(msg.content) }]
+  // 1. OPTION 1: GROQ API (Sabse Fast & Reliable)
+  if (groqKey) {
+    const groqModels = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
+    for (const model of groqModels) {
+      try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${groqKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ model, messages, max_tokens: 1000 })
         });
+        const data = await response.json();
+        if (response.ok && data.choices && data.choices[0]?.message?.content) {
+          return res.json({ reply: data.choices[0].message.content });
+        } else {
+          lastError = data.error?.message || "Groq model failed";
+        }
+      } catch (e) {
+        lastError = e.message;
       }
     }
   }
 
-  const payload = {
-    contents: contents.length > 0 ? contents : [{ role: 'user', parts: [{ text: 'Hello' }] }]
-  };
+  // 2. OPTION 2: GEMINI API (Native Google Studio)
+  if (geminiKey) {
+    let systemText = "";
+    const contents = [];
 
-  if (systemText) {
-    payload.systemInstruction = {
-      parts: [{ text: systemText }]
+    if (Array.isArray(messages)) {
+      for (const msg of messages) {
+        if (msg.role === 'system') {
+          systemText += (systemText ? "\n" : "") + msg.content;
+        } else {
+          contents.push({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: String(msg.content) }]
+          });
+        }
+      }
+    }
+
+    const payload = {
+      contents: contents.length > 0 ? contents : [{ role: 'user', parts: [{ text: 'Hello' }] }]
     };
-  }
+    if (systemText) payload.systemInstruction = { parts: [{ text: systemText }] };
 
-  // Active Working Gemini Models
-  const models = [
-    "gemini-2.0-flash",
-    "gemini-2.5-flash",
-    "gemini-1.5-flash"
-  ];
-
-  let aiResponseText = null;
-  let lastErr = "";
-
-  for (const modelName of models) {
-    try {
-      console.log(`Trying model: ${modelName}`);
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-      
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-        aiResponseText = data.candidates[0].content.parts[0].text;
-        console.log(`Success with: ${modelName}`);
-        break;
-      } else {
-        lastErr = data.error?.message || "Model response fail ho gaya";
-        console.warn(`Model ${modelName} failed:`, lastErr);
+    const geminiModels = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+    for (const model of geminiModels) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (response.ok && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+          return res.json({ reply: data.candidates[0].content.parts[0].text });
+        } else {
+          lastError = data.error?.message || "Gemini model failed";
+        }
+      } catch (e) {
+        lastError = e.message;
       }
-    } catch (err) {
-      lastErr = err.message;
-      console.error(`Error with ${modelName}:`, err.message);
     }
   }
 
-  if (aiResponseText) {
-    res.json({ reply: aiResponseText });
-  } else {
-    res.status(500).json({ error: `Gemini API Error: ${lastErr}` });
+  // 3. OPTION 3: OPENROUTER API (Fallback)
+  if (openrouterKey) {
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openrouterKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "google/gemma-2-9b-it:free",
+          messages,
+          max_tokens: 1000
+        })
+      });
+      const data = await response.json();
+      if (response.ok && data.choices && data.choices[0]?.message?.content) {
+        return res.json({ reply: data.choices[0].message.content });
+      } else {
+        lastError = data.error?.message || "OpenRouter failed";
+      }
+    } catch (e) {
+      lastError = e.message;
+    }
   }
+
+  // Key missing or all failed
+  if (!groqKey && !geminiKey && !openrouterKey) {
+    return res.status(500).json({ error: "Server par koi API Key set nahi hai. Render Dashboard me GROQ_API_KEY ya GEMINI_API_KEY add karein." });
+  }
+
+  return res.status(500).json({ error: `API Error: ${lastError}` });
 });
 
 app.get('*', (req, res) => {
