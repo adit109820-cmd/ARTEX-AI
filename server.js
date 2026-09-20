@@ -1,6 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const dns = require('dns');
+
+// Fix for Node.js fetch failed on Render (Forces IPv4 over IPv6)
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,11 +21,11 @@ app.post('/api/chat', async (req, res) => {
 
   if (!githubToken) {
     return res.status(500).json({ 
-      error: "Render Environment Variables me GITHUB_TOKEN set nahi hai." 
+      error: "Render Environment Variables me GITHUB_TOKEN missing hai." 
     });
   }
 
-  // GitHub Models official endpoints
+  // Active GitHub Models
   const models = [
     "meta-llama-3.3-70b-instruct",
     "gpt-4o-mini",
@@ -36,7 +42,7 @@ app.post('/api/chat', async (req, res) => {
         headers: {
           "Authorization": `Bearer ${githubToken}`,
           "Content-Type": "application/json",
-          "User-Agent": "Artex-AI"
+          "User-Agent": "Artex-AI-App"
         },
         body: JSON.stringify({
           model: modelName,
@@ -54,7 +60,7 @@ app.post('/api/chat', async (req, res) => {
         lastErr = data.error?.message || JSON.stringify(data);
       }
     } catch (err) {
-      lastErr = `Network Issue (${modelName}): ${err.message}`;
+      lastErr = `${modelName}: ${err.message}`;
     }
   }
 
