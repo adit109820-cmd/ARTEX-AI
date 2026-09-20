@@ -89,27 +89,39 @@ async function getResolvedIP(domain) {
 
   try {
     const ip = await queryDoHCloudflare(domain);
-    cachedIP = ip;
-    lastCacheTime = now;
-    return ip;
+    if (ip && typeof ip === 'string') {
+      cachedIP = ip;
+      lastCacheTime = now;
+      return ip;
+    }
   } catch (e) {}
 
   try {
     const ip = await queryDoHGoogle(domain);
-    cachedIP = ip;
-    lastCacheTime = now;
-    return ip;
+    if (ip && typeof ip === 'string') {
+      cachedIP = ip;
+      lastCacheTime = now;
+      return ip;
+    }
   } catch (e) {}
 
-  // Azure Front Door Anycast Fallback IP
+  // Azure Front Door Static Fallback IP
   return '13.107.246.70';
 }
 
-// Custom DNS lookup function for Node.js https.request
+// Fixed Custom DNS Lookup function for Node.js https.request
 function customDNSLookup(hostname, options, callback) {
+  // Fix Node.js lookup signature: handles both (hostname, cb) and (hostname, options, cb)
+  const cb = typeof options === 'function' ? options : callback;
+
   getResolvedIP(hostname)
-    .then(ip => callback(null, ip, 4))
-    .catch(() => callback(null, '13.107.246.70', 4));
+    .then(ip => {
+      const validIP = (typeof ip === 'string' && ip.trim().length > 0) ? ip.trim() : '13.107.246.70';
+      cb(null, validIP, 4);
+    })
+    .catch(() => {
+      cb(null, '13.107.246.70', 4);
+    });
 }
 
 function requestAzureAI(githubToken, modelName, messages) {
@@ -123,11 +135,11 @@ function requestAzureAI(githubToken, modelName, messages) {
     const targetHost = 'models.inference.ai.azure.com';
 
     const options = {
-      hostname: targetHost, // Domain name retained for TLS Certificate verification
+      hostname: targetHost,
       port: 443,
       path: '/chat/completions',
       method: 'POST',
-      lookup: customDNSLookup, // Custom lookup bypasses OS getaddrinfo ENOTFOUND
+      lookup: customDNSLookup,
       headers: {
         'Host': targetHost,
         'Authorization': `Bearer ${githubToken}`,
