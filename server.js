@@ -8,64 +8,76 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Static files serve karne ke liye
+// Root level static files serve karne ke liye
 app.use(express.static(__dirname));
 
 app.post('/api/chat', async (req, res) => {
   const { messages } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : null;
 
   if (!apiKey) {
-    return res.status(500).json({ error: "Server par GEMINI_API_KEY set nahi hai. Render dashboard check karein." });
+    return res.status(500).json({ error: "Server par GEMINI_API_KEY set nahi hai. Render Dashboard check karein." });
   }
 
-  // Gemini ke reliable models ki list
-  const geminiModels = [
-    "gemini-1.5-flash",
-    "gemini-2.5-flash",
-    "gemini-1.5-pro"
-  ];
+  // OpenAI messages ko Native Gemini format me convert karna
+  let systemInstructionText = "";
+  const contents = [];
 
+  if (Array.isArray(messages)) {
+    for (const msg of messages) {
+      if (msg.role === 'system') {
+        systemInstructionText += (systemInstructionText ? "\n" : "") + msg.content;
+      } else {
+        contents.push({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        });
+      }
+    }
+  }
+
+  const requestPayload = {
+    contents: contents.length > 0 ? contents : [{ role: 'user', parts: [{ text: 'Hello' }] }]
+  };
+
+  if (systemInstructionText) {
+    requestPayload.system_instruction = {
+      parts: [{ text: systemInstructionText }]
+    };
+  }
+
+  // Official Working Gemini Models
+  const models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"];
   let aiResponseText = null;
-  let lastErr = '';
+  let lastErr = "";
 
-  for (const modelName of geminiModels) {
+  for (const modelName of models) {
     try {
-      console.log(`Trying Gemini model: ${modelName}...`);
-
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      
+      const response = await fetch(url, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: modelName,
-          messages: messages,
-          max_tokens: 1000
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestPayload)
       });
 
       const data = await response.json();
 
-      if (response.ok && data.choices && data.choices[0]?.message?.content) {
-        aiResponseText = data.choices[0].message.content;
-        console.log(`Success with Gemini model: ${modelName}`);
-        break;
+      if (response.ok && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+        aiResponseText = data.candidates[0].content.parts[0].text;
+        break; // Success hote hi break
       } else {
-        lastErr = data.error?.message || "Gemini API error";
-        console.warn(`Model ${modelName} failed: ${lastErr}`);
+        lastErr = data.error?.message || "Model response generation failed";
       }
     } catch (err) {
       lastErr = err.message;
-      console.error(`Error with ${modelName}: ${err.message}`);
     }
   }
 
   if (aiResponseText) {
     res.json({ reply: aiResponseText });
   } else {
-    res.status(500).json({ error: `Gemini Error: ${lastErr}` });
+    res.status(500).json({ error: `Gemini API Error: ${lastErr}` });
   }
 });
 
