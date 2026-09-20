@@ -4,87 +4,17 @@ const path = require('path');
 const https = require('https');
 const dns = require('dns');
 
+// Force IPv4 first to resolve Render/Linux container DNS issues cleanly
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
-
-let cachedIP = null;
-let lastCacheTime = 0;
-const CACHE_TTL = 10 * 60 * 1000; // 10 Minutes Cache
-
-// DoH / c-ares IP resolver
-function resolveIPViaDoH() {
-  return new Promise((resolve) => {
-    const now = Date.now();
-    if (cachedIP && (now - lastCacheTime < CACHE_TTL)) {
-      return resolve(cachedIP);
-    }
-
-    // 1. Native c-ares lookup
-    dns.resolve4('models.inference.ai.azure.com', (err, addresses) => {
-      if (!err && addresses && addresses.length > 0) {
-        cachedIP = addresses[0];
-        lastCacheTime = now;
-        return resolve(cachedIP);
-      }
-
-      // 2. Cloudflare DoH fallback
-      const req = https.request('https://1.1.1.1/dns-query?name=models.inference.ai.azure.com&type=A', {
-        headers: { 'Accept': 'application/dns-json' },
-        checkServerIdentity: () => undefined
-      }, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(data);
-            if (json.Answer && json.Answer.length > 0) {
-              const rec = json.Answer.find(a => a.type === 1);
-              if (rec && rec.data) {
-                cachedIP = rec.data;
-                lastCacheTime = now;
-                return resolve(cachedIP);
-              }
-            }
-          } catch (e) {}
-          resolve('13.107.246.70');
-        });
-      });
-      req.on('error', () => resolve('13.107.246.70'));
-      req.end();
-    });
-  });
-}
-
-// Node.js compliant custom DNS lookup
-function customDNSLookup(hostname, options, callback) {
-  let cb = callback;
-  let opts = options;
-  if (typeof options === 'function') {
-    cb = options;
-    opts = {};
-  }
-
-  resolveIPViaDoH()
-    .then((ip) => {
-      const validIP = (ip && typeof ip === 'string' && ip.trim()) ? ip.trim() : '13.107.246.70';
-      if (opts && opts.all) {
-        cb(null, [{ address: validIP, family: 4 }]);
-      } else {
-        cb(null, validIP, 4);
-      }
-    })
-    .catch(() => {
-      if (opts && opts.all) {
-        cb(null, [{ address: '13.107.246.70', family: 4 }]);
-      } else {
-        cb(null, '13.107.246.70', 4);
-      }
-    });
-}
 
 function requestAzureAI(githubToken, modelName, messages) {
   return new Promise((resolve, reject) => {
@@ -101,11 +31,7 @@ function requestAzureAI(githubToken, modelName, messages) {
       port: 443,
       path: '/chat/completions',
       method: 'POST',
-      servername: targetHost,
-      lookup: customDNSLookup,
-      checkServerIdentity: () => undefined, // Azure ke *.azureedge.net cert mismatch error ko bypass karta hai
       headers: {
-        'Host': targetHost,
         'Authorization': `Bearer ${githubToken}`,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(payload),
@@ -121,7 +47,7 @@ function requestAzureAI(githubToken, modelName, messages) {
           const parsed = JSON.parse(responseData);
           resolve({ statusCode: res.statusCode, body: parsed });
         } catch (e) {
-          reject(new Error(`Invalid JSON response: ${responseData}`));
+          reject(new Error(`Azure returned non-JSON response (Status ${res.statusCode})`));
         }
       });
     });
