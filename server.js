@@ -19,58 +19,67 @@ app.post('/api/chat', async (req, res) => {
     return res.status(500).json({ error: "Server par GEMINI_API_KEY set nahi hai. Render Dashboard check karein." });
   }
 
-  // OpenAI messages ko Native Gemini format me convert karna
-  let systemInstructionText = "";
+  // System instruction aur conversation history prepare karein
+  let systemText = "";
   const contents = [];
 
   if (Array.isArray(messages)) {
     for (const msg of messages) {
       if (msg.role === 'system') {
-        systemInstructionText += (systemInstructionText ? "\n" : "") + msg.content;
+        systemText += (systemText ? "\n" : "") + msg.content;
       } else {
         contents.push({
           role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }]
+          parts: [{ text: String(msg.content) }]
         });
       }
     }
   }
 
-  const requestPayload = {
+  const payload = {
     contents: contents.length > 0 ? contents : [{ role: 'user', parts: [{ text: 'Hello' }] }]
   };
 
-  if (systemInstructionText) {
-    requestPayload.system_instruction = {
-      parts: [{ text: systemInstructionText }]
+  if (systemText) {
+    payload.systemInstruction = {
+      parts: [{ text: systemText }]
     };
   }
 
-  // Official Working Gemini Models
-  const models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"];
+  // Active Working Gemini Models
+  const models = [
+    "gemini-2.0-flash",
+    "gemini-2.5-flash",
+    "gemini-1.5-flash"
+  ];
+
   let aiResponseText = null;
   let lastErr = "";
 
   for (const modelName of models) {
     try {
+      console.log(`Trying model: ${modelName}`);
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
       
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestPayload)
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();
 
       if (response.ok && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
         aiResponseText = data.candidates[0].content.parts[0].text;
-        break; // Success hote hi break
+        console.log(`Success with: ${modelName}`);
+        break;
       } else {
-        lastErr = data.error?.message || "Model response generation failed";
+        lastErr = data.error?.message || "Model response fail ho gaya";
+        console.warn(`Model ${modelName} failed:`, lastErr);
       }
     } catch (err) {
       lastErr = err.message;
+      console.error(`Error with ${modelName}:`, err.message);
     }
   }
 
