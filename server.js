@@ -11,88 +11,56 @@ app.use(express.static(__dirname));
 
 app.post('/api/chat', async (req, res) => {
   const { messages } = req.body;
+  const githubToken = process.env.GITHUB_TOKEN ? process.env.GITHUB_TOKEN.trim() : null;
 
-  const cerebrasKey = process.env.CEREBRAS_API_KEY ? process.env.CEREBRAS_API_KEY.trim() : null;
-  const groqKey = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.trim() : null;
-  const geminiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : null;
+  if (!githubToken) {
+    return res.status(500).json({ 
+      error: "Render Environment Variables me GITHUB_TOKEN set nahi hai. Dashboard check karein." 
+    });
+  }
+
+  // GitHub Models official endpoints
+  const models = [
+    "meta-llama-3.3-70b-instruct",
+    "gpt-4o-mini",
+    "Phi-3.5-mini-instruct"
+  ];
 
   let aiResponseText = null;
+  let lastErr = "";
 
-  // 1. Try Cerebras API (If Key Exists)
-  if (cerebrasKey) {
+  for (const modelName of models) {
     try {
-      const response = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+      const response = await fetch("https://models.inference.ai.azure.com/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${cerebrasKey}`,
+          "Authorization": `Bearer ${githubToken}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b",
+          model: modelName,
           messages: messages,
           max_tokens: 1000
         })
       });
+
       const data = await response.json();
+
       if (response.ok && data.choices && data.choices[0]?.message?.content) {
         aiResponseText = data.choices[0].message.content;
+        break;
+      } else {
+        lastErr = data.error?.message || JSON.stringify(data);
       }
-    } catch (e) {
-      console.warn("Cerebras failed, falling back...");
-    }
-  }
-
-  // 2. Try Groq API (If Key Exists)
-  if (!aiResponseText && groqKey) {
-    try {
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${groqKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages: messages,
-          max_tokens: 1000
-        })
-      });
-      const data = await response.json();
-      if (response.ok && data.choices && data.choices[0]?.message?.content) {
-        aiResponseText = data.choices[0].message.content;
-      }
-    } catch (e) {
-      console.warn("Groq failed, falling back...");
-    }
-  }
-
-  // 3. Keyless Public Engine (Bypasses Credit/Auth Restrictions)
-  if (!aiResponseText) {
-    try {
-      // Extract latest user query
-      const lastUserMsg = Array.isArray(messages) 
-        ? messages.filter(m => m.role === 'user').pop()?.content 
-        : 'Hello';
-
-      const promptText = encodeURIComponent(String(lastUserMsg || 'Hello'));
-      const url = `https://text.pollinations.ai/${promptText}?model=mistral`;
-
-      const response = await fetch(url);
-      if (response.ok) {
-        const text = await response.text();
-        if (text && !text.includes("doesn't have enough credits")) {
-          aiResponseText = text;
-        }
-      }
-    } catch (e) {
-      console.warn("Keyless fallback failed");
+    } catch (err) {
+      lastErr = err.message;
     }
   }
 
   if (aiResponseText) {
     return res.json({ reply: aiResponseText });
   } else {
-    return res.status(500).json({ error: "Artex AI response generate nahi kar pa raha hai. Kripya 5 seconds baad try karein." });
+    return res.status(500).json({ error: `GitHub AI Error: ${lastErr}` });
   }
 });
 
