@@ -14,39 +14,38 @@ app.post('/api/chat', async (req, res) => {
   const cerebrasKey = process.env.CEREBRAS_API_KEY ? process.env.CEREBRAS_API_KEY.trim() : null;
 
   if (!cerebrasKey) {
-    return res.status(500).json({ error: "Render dashboard me CEREBRAS_API_KEY missing hai." });
+    return res.status(500).json({ error: "Render Dashboard me CEREBRAS_API_KEY missing hai." });
   }
 
   try {
-    let freeModels = [];
-
-    // 1. Account se active models fetch karein
+    // 1. Account se sare active models ki list dynamic mangwayen
+    let availableModels = [];
     const modelsResponse = await fetch("https://api.cerebras.ai/v1/models", {
       headers: { "Authorization": `Bearer ${cerebrasKey}` }
     });
 
     if (modelsResponse.ok) {
       const modelsData = await modelsResponse.json();
-      if (modelsData.data && modelsData.data.length > 0) {
-        // Sirf FREE Llama models filter karein (gpt-oss ya paid models ko exclude kar diya hai)
-        freeModels = modelsData.data
-          .map(m => m.id)
-          .filter(id => id.toLowerCase().includes("llama") && !id.toLowerCase().includes("gpt-oss"));
+      if (modelsData.data && Array.isArray(modelsData.data)) {
+        availableModels = modelsData.data.map(m => m.id);
       }
     }
 
-    // Backup list agar dynamic fetch na ho
-    if (freeModels.length === 0) {
-      freeModels = ["llama-3.3-70b", "llama3.1-8b"];
+    // Direct Hardcoded Fallbacks (agar list API work na kare)
+    if (availableModels.length === 0) {
+      availableModels = ["llama-3.3-70b", "llama3.1-8b", "llama3.1-70b"];
     }
 
     let aiResponseText = null;
-    let lastError = "";
+    let attemptedLog = [];
 
-    // 2. Free models ka loop — agar ek me error aaye toh next free model try karein
-    for (const modelName of freeModels) {
+    // 2. Jo bhi models dikhein, un par automatic trial loop
+    for (const modelId of availableModels) {
+      // Known paid / special billing models ko skip karein
+      if (modelId.toLowerCase().includes("gpt-oss")) continue;
+
       try {
-        console.log(`Trying Cerebras free model: ${modelName}`);
+        console.log(`Auto-trying model: ${modelId}`);
 
         const response = await fetch("https://api.cerebras.ai/v1/chat/completions", {
           method: "POST",
@@ -55,7 +54,7 @@ app.post('/api/chat', async (req, res) => {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            model: modelName,
+            model: modelId,
             messages: messages,
             max_tokens: 1000
           })
@@ -63,23 +62,26 @@ app.post('/api/chat', async (req, res) => {
 
         const data = await response.json();
 
+        // Sahi response milte hi instant break
         if (response.ok && data.choices && data.choices[0]?.message?.content) {
           aiResponseText = data.choices[0].message.content;
-          console.log(`Success with: ${modelName}`);
-          break; // Working response milte hi loop stop
+          console.log(`Auto-selected working model: ${modelId}`);
+          break;
         } else {
-          lastError = data.error?.message || JSON.stringify(data);
-          console.warn(`Model ${modelName} failed, trying next...`);
+          const errReason = data.error?.message || "Failed";
+          attemptedLog.push(`${modelId} (${errReason})`);
         }
       } catch (err) {
-        lastError = err.message;
+        attemptedLog.push(`${modelId} (${err.message})`);
       }
     }
 
     if (aiResponseText) {
       return res.json({ reply: aiResponseText });
     } else {
-      return res.status(500).json({ error: `Cerebras Free Tier Error: ${lastError}` });
+      return res.status(500).json({ 
+        error: `Auto-selection complete lekin koi working model nahi mila. Tried: ${attemptedLog.join(" | ")}` 
+      });
     }
 
   } catch (err) {
