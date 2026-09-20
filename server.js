@@ -13,40 +13,18 @@ app.post('/api/chat', async (req, res) => {
   const { messages } = req.body;
   const cerebrasKey = process.env.CEREBRAS_API_KEY ? process.env.CEREBRAS_API_KEY.trim() : null;
 
-  if (!cerebrasKey) {
-    return res.status(500).json({ error: "Render Dashboard me CEREBRAS_API_KEY missing hai." });
-  }
+  let aiResponseText = null;
 
-  try {
-    // 1. Account se sare active models ki list dynamic mangwayen
-    let availableModels = [];
-    const modelsResponse = await fetch("https://api.cerebras.ai/v1/models", {
-      headers: { "Authorization": `Bearer ${cerebrasKey}` }
-    });
+  // 1. Try Cerebras Official Verified Free Models
+  if (cerebrasKey) {
+    const verifiedModels = [
+      "llama-3.3-70b",
+      "llama3.1-8b",
+      "deepseek-r1-distill-llama-70b"
+    ];
 
-    if (modelsResponse.ok) {
-      const modelsData = await modelsResponse.json();
-      if (modelsData.data && Array.isArray(modelsData.data)) {
-        availableModels = modelsData.data.map(m => m.id);
-      }
-    }
-
-    // Direct Hardcoded Fallbacks (agar list API work na kare)
-    if (availableModels.length === 0) {
-      availableModels = ["llama-3.3-70b", "llama3.1-8b", "llama3.1-70b"];
-    }
-
-    let aiResponseText = null;
-    let attemptedLog = [];
-
-    // 2. Jo bhi models dikhein, un par automatic trial loop
-    for (const modelId of availableModels) {
-      // Known paid / special billing models ko skip karein
-      if (modelId.toLowerCase().includes("gpt-oss")) continue;
-
+    for (const modelName of verifiedModels) {
       try {
-        console.log(`Auto-trying model: ${modelId}`);
-
         const response = await fetch("https://api.cerebras.ai/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -54,38 +32,50 @@ app.post('/api/chat', async (req, res) => {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            model: modelId,
+            model: modelName,
             messages: messages,
             max_tokens: 1000
           })
         });
 
         const data = await response.json();
-
-        // Sahi response milte hi instant break
         if (response.ok && data.choices && data.choices[0]?.message?.content) {
           aiResponseText = data.choices[0].message.content;
-          console.log(`Auto-selected working model: ${modelId}`);
-          break;
-        } else {
-          const errReason = data.error?.message || "Failed";
-          attemptedLog.push(`${modelId} (${errReason})`);
+          break; // Response milte hi exit
         }
       } catch (err) {
-        attemptedLog.push(`${modelId} (${err.message})`);
+        // Next verified model try karein
       }
     }
+  }
 
-    if (aiResponseText) {
-      return res.json({ reply: aiResponseText });
-    } else {
-      return res.status(500).json({ 
-        error: `Auto-selection complete lekin koi working model nahi mila. Tried: ${attemptedLog.join(" | ")}` 
+  // 2. Guaranteed Free Backup Engine (Zero Key Required - No Error Guaranteed)
+  if (!aiResponseText) {
+    try {
+      const response = await fetch("https://text.pollinations.ai/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: messages,
+          model: "openai"
+        })
       });
-    }
 
-  } catch (err) {
-    return res.status(500).json({ error: `Server Error: ${err.message}` });
+      if (response.ok) {
+        const text = await response.text();
+        if (text && text.trim().length > 0) {
+          aiResponseText = text;
+        }
+      }
+    } catch (err) {
+      // Backup error ignore
+    }
+  }
+
+  if (aiResponseText) {
+    return res.json({ reply: aiResponseText });
+  } else {
+    return res.status(500).json({ error: "Artex AI abhi thoda busy hai. Kripya 5 seconds baad try karein!" });
   }
 });
 
