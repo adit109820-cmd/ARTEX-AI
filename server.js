@@ -10,114 +10,109 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Cloudflare DoH (1.1.1.1) with TLS Identity Bypass
-function resolveCloudflare(domain) {
+// DoH Cloudflare (1.1.1.1)
+function queryDoHCloudflare(domain) {
   return new Promise((resolve, reject) => {
-    const options = {
+    const req = https.request({
       hostname: '1.1.1.1',
       port: 443,
       path: `/dns-query?name=${encodeURIComponent(domain)}&type=A`,
       method: 'GET',
+      servername: 'one.one.one.one',
       headers: {
         'Accept': 'application/dns-json',
-        'Host': 'cloudflare-dns.com'
-      },
-      checkServerIdentity: () => undefined // Direct IP TLS verification check bypass
-    };
-
-    const req = https.request(options, (res) => {
+        'Host': 'one.one.one.one'
+      }
+    }, (res) => {
       let data = '';
       res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
           if (json.Answer && json.Answer.length > 0) {
-            const aRecord = json.Answer.find(ans => ans.type === 1);
+            const aRecord = json.Answer.find(a => a.type === 1);
             if (aRecord && aRecord.data) return resolve(aRecord.data);
           }
-          reject(new Error("Cloudflare DoH answer empty"));
+          reject(new Error('No A record in Cloudflare DoH'));
         } catch (e) {
           reject(e);
         }
       });
     });
-
     req.on('error', reject);
     req.end();
   });
 }
 
-// Google DoH (8.8.8.8) with TLS Identity Bypass
-function resolveGoogle(domain) {
+// DoH Google (8.8.8.8)
+function queryDoHGoogle(domain) {
   return new Promise((resolve, reject) => {
-    const options = {
+    const req = https.request({
       hostname: '8.8.8.8',
       port: 443,
       path: `/resolve?name=${encodeURIComponent(domain)}&type=A`,
       method: 'GET',
+      servername: 'dns.google',
       headers: {
         'Host': 'dns.google'
-      },
-      checkServerIdentity: () => undefined // Direct IP TLS verification check bypass
-    };
-
-    const req = https.request(options, (res) => {
+      }
+    }, (res) => {
       let data = '';
       res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
           if (json.Answer && json.Answer.length > 0) {
-            const aRecord = json.Answer.find(ans => ans.type === 1);
+            const aRecord = json.Answer.find(a => a.type === 1);
             if (aRecord && aRecord.data) return resolve(aRecord.data);
           }
-          reject(new Error("Google DoH answer empty"));
+          reject(new Error('No A record in Google DoH'));
         } catch (e) {
           reject(e);
         }
       });
     });
-
     req.on('error', reject);
     req.end();
   });
 }
 
-// In-memory DNS Cache
 let cachedIP = null;
 let lastCacheTime = 0;
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const CACHE_TTL = 10 * 60 * 1000; // 10 Minutes Cache
 
-async function getAzureIP() {
+async function getResolvedIP(domain) {
   const now = Date.now();
   if (cachedIP && (now - lastCacheTime < CACHE_TTL)) {
     return cachedIP;
   }
 
-  const targetDomain = 'models.inference.ai.azure.com';
-
-  // 1. Try Cloudflare DoH
   try {
-    const ip = await resolveCloudflare(targetDomain);
+    const ip = await queryDoHCloudflare(domain);
     cachedIP = ip;
     lastCacheTime = now;
     return ip;
   } catch (e) {}
 
-  // 2. Try Google DoH
   try {
-    const ip = await resolveGoogle(targetDomain);
+    const ip = await queryDoHGoogle(domain);
     cachedIP = ip;
     lastCacheTime = now;
     return ip;
   } catch (e) {}
 
-  // 3. Emergency Static Azure Front Door Fallback IPs
-  const fallbackIPs = ["13.107.246.70", "13.107.213.70", "20.119.8.38"];
-  return fallbackIPs[Math.floor(Math.random() * fallbackIPs.length)];
+  // Azure Front Door Anycast Fallback IP
+  return '13.107.246.70';
 }
 
-function requestAzureAI(ipAddress, githubToken, modelName, messages) {
+// Custom DNS lookup function for Node.js https.request
+function customDNSLookup(hostname, options, callback) {
+  getResolvedIP(hostname)
+    .then(ip => callback(null, ip, 4))
+    .catch(() => callback(null, '13.107.246.70', 4));
+}
+
+function requestAzureAI(githubToken, modelName, messages) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
       model: modelName,
@@ -128,11 +123,11 @@ function requestAzureAI(ipAddress, githubToken, modelName, messages) {
     const targetHost = 'models.inference.ai.azure.com';
 
     const options = {
-      hostname: ipAddress,
+      hostname: targetHost, // Domain name retained for TLS Certificate verification
       port: 443,
       path: '/chat/completions',
       method: 'POST',
-      servername: targetHost, // Azure Front Door SNI Header
+      lookup: customDNSLookup, // Custom lookup bypasses OS getaddrinfo ENOTFOUND
       headers: {
         'Host': targetHost,
         'Authorization': `Bearer ${githubToken}`,
@@ -169,8 +164,6 @@ app.post('/api/chat', async (req, res) => {
     return res.status(500).json({ error: "Render Environment variables me GITHUB_TOKEN missing hai." });
   }
 
-  const azureIP = await getAzureIP();
-
   const models = [
     "meta-llama-3.3-70b-instruct",
     "gpt-4o-mini",
@@ -181,7 +174,7 @@ app.post('/api/chat', async (req, res) => {
 
   for (const modelName of models) {
     try {
-      const result = await requestAzureAI(azureIP, githubToken, modelName, messages);
+      const result = await requestAzureAI(githubToken, modelName, messages);
       
       if (result.statusCode === 200 && result.body?.choices?.[0]?.message?.content) {
         return res.json({ reply: result.body.choices[0].message.content });
