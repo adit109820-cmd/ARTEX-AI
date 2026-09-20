@@ -10,40 +10,113 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Render OS DNS ko bypass karne ke liye DNS-over-HTTPS (DoH) engine
-async function getAzureIP() {
-  const targetDomain = 'models.inference.ai.azure.com';
+// Cloudflare DoH (DNS over HTTPS) with TLS SNI Header
+function resolveCloudflare(domain) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: '1.1.1.1',
+      port: 443,
+      path: `/dns-query?name=${encodeURIComponent(domain)}&type=A`,
+      method: 'GET',
+      servername: 'one.one.one.one',
+      headers: {
+        'Accept': 'application/dns-json',
+        'Host': 'one.one.one.one'
+      }
+    };
 
-  // 1. Try Cloudflare DoH (Direct IP call - No OS DNS needed)
-  try {
-    const res = await fetch(`https://1.1.1.1/dns-query?name=${targetDomain}&type=A`, {
-      headers: { 'Accept': 'application/dns-json' }
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.Answer && json.Answer.length > 0) {
+            const aRecord = json.Answer.find(ans => ans.type === 1);
+            if (aRecord && aRecord.data) return resolve(aRecord.data);
+          }
+          reject(new Error(`Cloudflare DoH invalid response`));
+        } catch (e) {
+          reject(e);
+        }
+      });
     });
-    const data = await res.json();
-    if (data.Answer && data.Answer.length > 0) {
-      const aRecord = data.Answer.find(item => item.type === 1);
-      if (aRecord && aRecord.data) return aRecord.data;
-    }
-  } catch (e) {
-    console.warn("Cloudflare DoH failed, trying Google DoH...");
-  }
 
-  // 2. Fallback to Google DoH
-  try {
-    const res = await fetch(`https://8.8.8.8/resolve?name=${targetDomain}&type=A`);
-    const data = await res.json();
-    if (data.Answer && data.Answer.length > 0) {
-      const aRecord = data.Answer.find(item => item.type === 1);
-      if (aRecord && aRecord.data) return aRecord.data;
-    }
-  } catch (e) {
-    console.error("Google DoH failed");
-  }
-
-  return null;
+    req.on('error', reject);
+    req.end();
+  });
 }
 
-// Direct IP + TLS SNI HTTPS Request
+// Google DoH Fallback
+function resolveGoogle(domain) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: '8.8.8.8',
+      port: 443,
+      path: `/resolve?name=${encodeURIComponent(domain)}&type=A`,
+      method: 'GET',
+      servername: 'dns.google',
+      headers: {
+        'Host': 'dns.google'
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.Answer && json.Answer.length > 0) {
+            const aRecord = json.Answer.find(ans => ans.type === 1);
+            if (aRecord && aRecord.data) return resolve(aRecord.data);
+          }
+          reject(new Error(`Google DoH invalid response`));
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+// In-memory DNS cache (Repeated DoH calls avoid karne ke liye)
+let cachedIP = null;
+let lastCacheTime = 0;
+const CACHE_TTL = 10 * 60 * 1000; // 10 Minutes
+
+async function getAzureIP() {
+  const now = Date.now();
+  if (cachedIP && (now - lastCacheTime < CACHE_TTL)) {
+    return cachedIP;
+  }
+
+  const targetDomain = 'models.inference.ai.azure.com';
+
+  try {
+    const ip = await resolveCloudflare(targetDomain);
+    cachedIP = ip;
+    lastCacheTime = now;
+    return ip;
+  } catch (err1) {
+    console.warn("Cloudflare DoH fallback triggered");
+  }
+
+  try {
+    const ip = await resolveGoogle(targetDomain);
+    cachedIP = ip;
+    lastCacheTime = now;
+    return ip;
+  } catch (err2) {
+    console.warn("Google DoH fallback triggered");
+  }
+
+  throw new Error("DNS resolution failed on both Cloudflare and Google DoH");
+}
+
 function requestAzureAI(ipAddress, githubToken, modelName, messages) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
@@ -52,15 +125,14 @@ function requestAzureAI(ipAddress, githubToken, modelName, messages) {
       max_tokens: 1000
     });
 
-    const isIP = Boolean(ipAddress);
     const targetHost = 'models.inference.ai.azure.com';
 
     const options = {
-      hostname: isIP ? ipAddress : targetHost,
+      hostname: ipAddress, // Direct resolved IP (e.g. 20.119.8.38)
       port: 443,
       path: '/chat/completions',
       method: 'POST',
-      servername: targetHost, // TLS Handshake ke liye mandatory
+      servername: targetHost, // SNI Header for Azure TLS Handshake
       headers: {
         'Host': targetHost,
         'Authorization': `Bearer ${githubToken}`,
@@ -97,8 +169,12 @@ app.post('/api/chat', async (req, res) => {
     return res.status(500).json({ error: "Render Environment variables me GITHUB_TOKEN missing hai." });
   }
 
-  // Fetch IP over HTTPS (No system DNS call)
-  const azureIP = await getAzureIP();
+  let azureIP = null;
+  try {
+    azureIP = await getAzureIP();
+  } catch (dnsErr) {
+    return res.status(500).json({ error: `DNS Resolution Error: ${dnsErr.message}` });
+  }
 
   const models = [
     "meta-llama-3.3-70b-instruct",
@@ -132,3 +208,4 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+           
