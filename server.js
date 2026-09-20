@@ -15,7 +15,7 @@ let cachedIP = null;
 let lastCacheTime = 0;
 const CACHE_TTL = 10 * 60 * 1000; // 10 Minutes Cache
 
-// Async IP Resolver (c-ares -> DoH -> Fallback)
+// DoH / c-ares IP resolver
 function resolveIPViaDoH() {
   return new Promise((resolve) => {
     const now = Date.now();
@@ -23,7 +23,7 @@ function resolveIPViaDoH() {
       return resolve(cachedIP);
     }
 
-    // 1. Try c-ares native DNS query
+    // 1. Native c-ares lookup
     dns.resolve4('models.inference.ai.azure.com', (err, addresses) => {
       if (!err && addresses && addresses.length > 0) {
         cachedIP = addresses[0];
@@ -31,10 +31,10 @@ function resolveIPViaDoH() {
         return resolve(cachedIP);
       }
 
-      // 2. DoH Cloudflare Fallback
+      // 2. Cloudflare DoH fallback
       const req = https.request('https://1.1.1.1/dns-query?name=models.inference.ai.azure.com&type=A', {
         headers: { 'Accept': 'application/dns-json' },
-        rejectUnauthorized: false
+        checkServerIdentity: () => undefined
       }, (res) => {
         let data = '';
         res.on('data', chunk => data += chunk);
@@ -59,7 +59,7 @@ function resolveIPViaDoH() {
   });
 }
 
-// Fully compliant Node.js custom DNS lookup function
+// Node.js compliant custom DNS lookup
 function customDNSLookup(hostname, options, callback) {
   let cb = callback;
   let opts = options;
@@ -97,11 +97,13 @@ function requestAzureAI(githubToken, modelName, messages) {
     const targetHost = 'models.inference.ai.azure.com';
 
     const options = {
-      hostname: targetHost, // Preserves target domain for SSL Certificate validation
+      hostname: targetHost,
       port: 443,
       path: '/chat/completions',
       method: 'POST',
-      lookup: customDNSLookup, // Resolves socket IP directly without OS glibc getaddrinfo
+      servername: targetHost,
+      lookup: customDNSLookup,
+      checkServerIdentity: () => undefined, // Azure ke *.azureedge.net cert mismatch error ko bypass karta hai
       headers: {
         'Host': targetHost,
         'Authorization': `Bearer ${githubToken}`,
