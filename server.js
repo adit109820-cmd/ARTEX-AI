@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const https = require('https');
+const tls = require('tls');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,7 @@ function queryDoHCloudflare(domain) {
       path: `/dns-query?name=${encodeURIComponent(domain)}&type=A`,
       method: 'GET',
       servername: 'one.one.one.one',
+      checkServerIdentity: (host, cert) => tls.checkServerIdentity('one.one.one.one', cert),
       headers: {
         'Accept': 'application/dns-json',
         'Host': 'one.one.one.one'
@@ -53,6 +55,7 @@ function queryDoHGoogle(domain) {
       path: `/resolve?name=${encodeURIComponent(domain)}&type=A`,
       method: 'GET',
       servername: 'dns.google',
+      checkServerIdentity: (host, cert) => tls.checkServerIdentity('dns.google', cert),
       headers: {
         'Host': 'dns.google'
       }
@@ -79,7 +82,7 @@ function queryDoHGoogle(domain) {
 
 let cachedIP = null;
 let lastCacheTime = 0;
-const CACHE_TTL = 10 * 60 * 1000; // 10 Minutes Cache
+const CACHE_TTL = 10 * 60 * 1000; // 10 Minutes
 
 async function getResolvedIP(domain) {
   const now = Date.now();
@@ -90,41 +93,26 @@ async function getResolvedIP(domain) {
   try {
     const ip = await queryDoHCloudflare(domain);
     if (ip && typeof ip === 'string') {
-      cachedIP = ip;
+      cachedIP = ip.trim();
       lastCacheTime = now;
-      return ip;
+      return cachedIP;
     }
   } catch (e) {}
 
   try {
     const ip = await queryDoHGoogle(domain);
     if (ip && typeof ip === 'string') {
-      cachedIP = ip;
+      cachedIP = ip.trim();
       lastCacheTime = now;
-      return ip;
+      return cachedIP;
     }
   } catch (e) {}
 
-  // Azure Front Door Static Fallback IP
+  // Azure Front Door Anycast Fallback IP
   return '13.107.246.70';
 }
 
-// Fixed Custom DNS Lookup function for Node.js https.request
-function customDNSLookup(hostname, options, callback) {
-  // Fix Node.js lookup signature: handles both (hostname, cb) and (hostname, options, cb)
-  const cb = typeof options === 'function' ? options : callback;
-
-  getResolvedIP(hostname)
-    .then(ip => {
-      const validIP = (typeof ip === 'string' && ip.trim().length > 0) ? ip.trim() : '13.107.246.70';
-      cb(null, validIP, 4);
-    })
-    .catch(() => {
-      cb(null, '13.107.246.70', 4);
-    });
-}
-
-function requestAzureAI(githubToken, modelName, messages) {
+function requestAzureAI(azureIP, githubToken, modelName, messages) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
       model: modelName,
@@ -135,11 +123,15 @@ function requestAzureAI(githubToken, modelName, messages) {
     const targetHost = 'models.inference.ai.azure.com';
 
     const options = {
-      hostname: targetHost,
+      hostname: azureIP, // Direct IP address (DNS lookup bypassed)
       port: 443,
       path: '/chat/completions',
       method: 'POST',
-      lookup: customDNSLookup,
+      servername: targetHost, // SNI for TLS handshake
+      checkServerIdentity: (host, cert) => {
+        // Validates Azure certificate against target host domain
+        return tls.checkServerIdentity(targetHost, cert);
+      },
       headers: {
         'Host': targetHost,
         'Authorization': `Bearer ${githubToken}`,
@@ -176,6 +168,8 @@ app.post('/api/chat', async (req, res) => {
     return res.status(500).json({ error: "Render Environment variables me GITHUB_TOKEN missing hai." });
   }
 
+  const azureIP = await getResolvedIP('models.inference.ai.azure.com');
+
   const models = [
     "meta-llama-3.3-70b-instruct",
     "gpt-4o-mini",
@@ -186,7 +180,7 @@ app.post('/api/chat', async (req, res) => {
 
   for (const modelName of models) {
     try {
-      const result = await requestAzureAI(githubToken, modelName, messages);
+      const result = await requestAzureAI(azureIP, githubToken, modelName, messages);
       
       if (result.statusCode === 200 && result.body?.choices?.[0]?.message?.content) {
         return res.json({ reply: result.body.choices[0].message.content });
