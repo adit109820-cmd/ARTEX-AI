@@ -4,11 +4,9 @@ const path = require('path');
 const https = require('https');
 const dns = require('dns');
 
-// Render DNS lookup failure (ENOTFOUND) ko fix karne ke liye Public DNS set karein
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
-} catch (e) {
-  console.warn("Custom DNS warning:", e.message);
+// Force Node.js DNS resolver to prioritize IPv4
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
 }
 
 const app = express();
@@ -30,6 +28,7 @@ function requestAzureAI(githubToken, modelName, messages) {
       hostname: 'models.inference.ai.azure.com',
       path: '/chat/completions',
       method: 'POST',
+      family: 4, // System DNS ko IPv4 query execute karne ke liye force karta hai
       headers: {
         'Authorization': `Bearer ${githubToken}`,
         'Content-Type': 'application/json',
