@@ -15,7 +15,7 @@ app.post('/api/chat', async (req, res) => {
 
   if (!githubToken) {
     return res.status(500).json({ 
-      error: "Render Environment Variables me GITHUB_TOKEN set nahi hai. Dashboard check karein." 
+      error: "Render Environment Variables me GITHUB_TOKEN set nahi hai." 
     });
   }
 
@@ -35,7 +35,8 @@ app.post('/api/chat', async (req, res) => {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${githubToken}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "User-Agent": "Artex-AI"
         },
         body: JSON.stringify({
           model: modelName,
@@ -53,7 +54,7 @@ app.post('/api/chat', async (req, res) => {
         lastErr = data.error?.message || JSON.stringify(data);
       }
     } catch (err) {
-      lastErr = err.message;
+      lastErr = `Network Issue (${modelName}): ${err.message}`;
     }
   }
 
