@@ -2,6 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const https = require('https');
+const dns = require('dns');
+
+// Render DNS lookup failure (ENOTFOUND) ko fix karne ke liye Public DNS set karein
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (e) {
+  console.warn("Custom DNS warning:", e.message);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,7 +18,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Native HTTPS module function (Undici fetch crashes ko bypass karne ke liye)
 function requestAzureAI(githubToken, modelName, messages) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
@@ -39,7 +46,7 @@ function requestAzureAI(githubToken, modelName, messages) {
           const parsed = JSON.parse(responseData);
           resolve({ statusCode: res.statusCode, body: parsed });
         } catch (e) {
-          reject(new Error(`Invalid JSON: ${responseData}`));
+          reject(new Error(`Invalid JSON response: ${responseData}`));
         }
       });
     });
@@ -73,10 +80,10 @@ app.post('/api/chat', async (req, res) => {
       if (result.statusCode === 200 && result.body?.choices?.[0]?.message?.content) {
         return res.json({ reply: result.body.choices[0].message.content });
       } else {
-        lastError = result.body?.error?.message || `Status Code ${result.statusCode}: ${JSON.stringify(result.body)}`;
+        lastError = result.body?.error?.message || `Status ${result.statusCode}: ${JSON.stringify(result.body)}`;
       }
     } catch (err) {
-      lastError = err.message;
+      lastError = `${modelName}: ${err.message}`;
     }
   }
 
