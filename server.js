@@ -4,17 +4,23 @@ const path = require('path');
 const https = require('https');
 const dns = require('dns');
 
-// Force Node.js DNS resolver to prioritize IPv4
-if (dns.setDefaultResultOrder) {
-  dns.setDefaultResultOrder('ipv4first');
-}
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
+
+// Render Linux glibc getaddrinfo ko bypass karne ke liye c-ares DNS lookup
+function cAresLookup(hostname, options, callback) {
+  dns.resolve4(hostname, (err, addresses) => {
+    if (!err && addresses && addresses.length > 0) {
+      return callback(null, addresses[0], 4);
+    }
+    // Fallback lookup
+    dns.lookup(hostname, options, callback);
+  });
+}
 
 function requestAzureAI(githubToken, modelName, messages) {
   return new Promise((resolve, reject) => {
@@ -28,7 +34,7 @@ function requestAzureAI(githubToken, modelName, messages) {
       hostname: 'models.inference.ai.azure.com',
       path: '/chat/completions',
       method: 'POST',
-      family: 4, // System DNS ko IPv4 query execute karne ke liye force karta hai
+      lookup: cAresLookup, // System glibc getaddrinfo ko bypass karta hai
       headers: {
         'Authorization': `Bearer ${githubToken}`,
         'Content-Type': 'application/json',
