@@ -9,26 +9,37 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// Sleep function for smooth retry backoff
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 app.post('/api/chat', async (req, res) => {
   try {
     const { messages } = req.body;
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return res.status(500).json({ error: "Render Environment variables me GEMINI_API_KEY missing hai." });
+      return res.status(400).json({ error: "Render Environment variables me GEMINI_API_KEY missing hai." });
     }
 
-    const userPrompt = messages.map(m => `${m.role}: ${m.content}`).join('\n');
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: "Invalid messages format." });
+    }
 
-    // Aapke list se verified exact active models
+    // Convert chat messages to proper native Gemini JSON format
+    const contents = messages.map(m => ({
+      role: (m.role === 'assistant' || m.role === 'ai' || m.role === 'model') ? 'model' : 'user',
+      parts: [{ text: m.content || m.text || '' }]
+    }));
+
+    // High availability active models
     const models = [
       'gemini-2.5-flash',
       'gemini-2.5-flash-lite',
-      'gemini-2.5-pro',
-      'gemini-flash-latest'
+      'gemini-flash-latest',
+      'gemini-2.5-pro'
     ];
 
-    let lastError = null;
+    let lastError = "Server busy";
 
     for (const modelName of models) {
       try {
@@ -37,21 +48,22 @@ app.post('/api/chat', async (req, res) => {
         const response = await fetch(geminiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: userPrompt }] }]
-          })
+          body: JSON.stringify({ contents })
         });
 
         const data = await response.json();
 
-        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+        if (response.ok && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
           const reply = data.candidates[0].content.parts[0].text;
           return res.json({ reply });
         } else {
-          lastError = data.error?.message || JSON.stringify(data);
+          lastError = data.error?.message || `Status ${response.status}`;
+          // Pause briefly before trying the backup model
+          await sleep(800);
         }
       } catch (err) {
         lastError = err.message;
+        await sleep(800);
       }
     }
 
