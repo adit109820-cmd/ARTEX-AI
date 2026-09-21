@@ -4,9 +4,11 @@ const path = require('path');
 const https = require('https');
 const dns = require('dns');
 
-// Force IPv4 first to resolve Render/Linux container DNS issues cleanly
-if (dns.setDefaultResultOrder) {
-  dns.setDefaultResultOrder('ipv4first');
+// Public DNS servers set karein taaki Render ka internal DNS bypass ho sake
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (e) {
+  console.log('Custom DNS set error:', e.message);
 }
 
 const app = express();
@@ -15,6 +17,109 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
+
+let cachedIP = null;
+let lastCacheTime = 0;
+const CACHE_TTL = 10 * 60 * 1000; // 10 Minutes Cache
+
+// Dynamic IP Resolver (c-ares -> Cloudflare DoH -> Google DoH)
+async function resolveDomainIP(domain) {
+  const now = Date.now();
+  if (cachedIP && (now - lastCacheTime < CACHE_TTL)) {
+    return cachedIP;
+  }
+
+  // 1. Try c-ares lookup via Google/Cloudflare DNS
+  try {
+    const addresses = await new Promise((resolve, reject) => {
+      dns.resolve4(domain, (err, addrs) => err ? reject(err) : resolve(addrs));
+    });
+    if (addresses && addresses.length > 0) {
+      cachedIP = addresses[0];
+      lastCacheTime = now;
+      return cachedIP;
+    }
+  } catch (e) {}
+
+  // 2. Try Cloudflare DNS-over-HTTPS (Port 443)
+  try {
+    const ip = await new Promise((resolve, reject) => {
+      const req = https.get(`https://1.1.1.1/dns-query?name=${encodeURIComponent(domain)}&type=A`, {
+        headers: { 'Accept': 'application/dns-json' },
+        timeout: 4000
+      }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            const record = json.Answer && json.Answer.find(a => a.type === 1);
+            if (record && record.data) resolve(record.data.trim());
+            else reject(new Error('No A record in Cloudflare DoH'));
+          } catch (err) { reject(err); }
+        });
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('Cloudflare DoH timeout')); });
+    });
+    if (ip) {
+      cachedIP = ip;
+      lastCacheTime = now;
+      return cachedIP;
+    }
+  } catch (e) {}
+
+  // 3. Try Google DNS-over-HTTPS (Port 443)
+  try {
+    const ip = await new Promise((resolve, reject) => {
+      const req = https.get(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`, {
+        timeout: 4000
+      }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            const record = json.Answer && json.Answer.find(a => a.type === 1);
+            if (record && record.data) resolve(record.data.trim());
+            else reject(new Error('No A record in Google DoH'));
+          } catch (err) { reject(err); }
+        });
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('Google DoH timeout')); });
+    });
+    if (ip) {
+      cachedIP = ip;
+      lastCacheTime = now;
+      return cachedIP;
+    }
+  } catch (e) {}
+
+  throw new Error(`Failed to resolve IP for ${domain}`);
+}
+
+// Node.js compliant custom DNS lookup
+function customDNSLookup(hostname, options, callback) {
+  let cb = callback;
+  let opts = options;
+  if (typeof options === 'function') {
+    cb = options;
+    opts = {};
+  }
+
+  resolveDomainIP(hostname)
+    .then((ip) => {
+      if (opts && opts.all) {
+        cb(null, [{ address: ip, family: 4 }]);
+      } else {
+        cb(null, ip, 4);
+      }
+    })
+    .catch((err) => {
+      cb(err);
+    });
+}
 
 function requestAzureAI(githubToken, modelName, messages) {
   return new Promise((resolve, reject) => {
@@ -31,6 +136,7 @@ function requestAzureAI(githubToken, modelName, messages) {
       port: 443,
       path: '/chat/completions',
       method: 'POST',
+      lookup: customDNSLookup, // System getaddrinfo ko bypass karke direct resolution karta hai
       headers: {
         'Authorization': `Bearer ${githubToken}`,
         'Content-Type': 'application/json',
@@ -47,7 +153,7 @@ function requestAzureAI(githubToken, modelName, messages) {
           const parsed = JSON.parse(responseData);
           resolve({ statusCode: res.statusCode, body: parsed });
         } catch (e) {
-          reject(new Error(`Azure returned non-JSON response (Status ${res.statusCode})`));
+          reject(new Error(`Azure response parse error: ${responseData}`));
         }
       });
     });
