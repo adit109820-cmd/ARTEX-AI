@@ -21,8 +21,8 @@ app.post('/api/chat', async (req, res) => {
     // Convert messages array to prompt text
     const userPrompt = messages.map(m => `${m.role}: ${m.content}`).join('\n');
 
-    // Direct Gemini 1.5 Flash API Call (No SDK or extra package required)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // Updated active model name: gemini-2.0-flash
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(geminiUrl, {
       method: 'POST',
@@ -38,7 +38,7 @@ app.post('/api/chat', async (req, res) => {
       const reply = data.candidates[0].content.parts[0].text;
       return res.json({ reply });
     } else {
-      return res.status(500).json({ error: "Gemini AI response format error: " + JSON.stringify(data) });
+      return res.status(500).json({ error: "Gemini AI error: " + (data.error?.message || JSON.stringify(data)) });
     }
 
   } catch (error) {
