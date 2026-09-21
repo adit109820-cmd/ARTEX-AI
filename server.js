@@ -18,28 +18,44 @@ app.post('/api/chat', async (req, res) => {
       return res.status(500).json({ error: "Render Environment variables me GEMINI_API_KEY missing hai." });
     }
 
-    // Convert messages array to prompt text
     const userPrompt = messages.map(m => `${m.role}: ${m.content}`).join('\n');
 
-    // Updated active model: gemini-3.6-flash
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+    // Aapke list se verified exact active models
+    const models = [
+      'gemini-2.5-flash',
+      'gemini-2.5-flash-lite',
+      'gemini-2.5-pro',
+      'gemini-flash-latest'
+    ];
 
-    const response = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: userPrompt }] }]
-      })
-    });
+    let lastError = null;
 
-    const data = await response.json();
+    for (const modelName of models) {
+      try {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-    if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-      const reply = data.candidates[0].content.parts[0].text;
-      return res.json({ reply });
-    } else {
-      return res.status(500).json({ error: "Gemini AI error: " + (data.error?.message || JSON.stringify(data)) });
+        const response = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: userPrompt }] }]
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+          const reply = data.candidates[0].content.parts[0].text;
+          return res.json({ reply });
+        } else {
+          lastError = data.error?.message || JSON.stringify(data);
+        }
+      } catch (err) {
+        lastError = err.message;
+      }
     }
+
+    return res.status(500).json({ error: `Gemini AI Error: ${lastError}` });
 
   } catch (error) {
     console.error("AI Error:", error);
