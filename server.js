@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { OpenAI } = require('openai');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,34 +9,41 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// GitHub Models client initialization
-const client = new OpenAI({
-  baseURL: "https://models.inference.ai.azure.com",
-  apiKey: process.env.GITHUB_TOKEN || ""
-});
-
 app.post('/api/chat', async (req, res) => {
   try {
     const { messages } = req.body;
-    
-    if (!process.env.GITHUB_TOKEN) {
-      return res.status(500).json({ error: "Render Environment variables me GITHUB_TOKEN missing hai." });
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      return res.status(500).json({ error: "Render Environment variables me GEMINI_API_KEY missing hai." });
     }
 
-    // Modern OpenAI SDK automatically handles SSL, DNS and Headers
-    const response = await client.chat.completions.create({
-      messages: messages,
-      model: "gpt-4o-mini", // Aap "meta-llama-3.3-70b-instruct" ya "Phi-3.5-mini-instruct" bhi rakh sakte hain
-      temperature: 0.7,
-      max_tokens: 1000
+    // Convert messages array to prompt text
+    const userPrompt = messages.map(m => `${m.role}: ${m.content}`).join('\n');
+
+    // Direct Gemini 1.5 Flash API Call (No SDK or extra package required)
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const response = await fetch(geminiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: userPrompt }] }]
+      })
     });
 
-    const reply = response.choices[0].message.content;
-    return res.json({ reply });
+    const data = await response.json();
+
+    if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+      const reply = data.candidates[0].content.parts[0].text;
+      return res.json({ reply });
+    } else {
+      return res.status(500).json({ error: "Gemini AI response format error: " + JSON.stringify(data) });
+    }
 
   } catch (error) {
     console.error("AI Error:", error);
-    return res.status(500).json({ error: `GitHub AI Error: ${error.message}` });
+    return res.status(500).json({ error: `AI Error: ${error.message}` });
   }
 });
 
