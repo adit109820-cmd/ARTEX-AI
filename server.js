@@ -2,14 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const https = require('https');
-const dns = require('dns');
-
-// Public DNS servers set karein taaki Render ka internal DNS bypass ho sake
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
-} catch (e) {
-  console.log('Custom DNS set error:', e.message);
-}
+const tls = require('tls');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,106 +15,50 @@ let cachedIP = null;
 let lastCacheTime = 0;
 const CACHE_TTL = 10 * 60 * 1000; // 10 Minutes Cache
 
-// Dynamic IP Resolver (c-ares -> Cloudflare DoH -> Google DoH)
-async function resolveDomainIP(domain) {
+// HTTPS DoH (Port 443 - Never blocked on Render)
+async function resolveAzureIP() {
   const now = Date.now();
   if (cachedIP && (now - lastCacheTime < CACHE_TTL)) {
     return cachedIP;
   }
 
-  // 1. Try c-ares lookup via Google/Cloudflare DNS
+  const domain = 'models.inference.ai.azure.com';
+
+  // Method 1: Cloudflare DoH via HTTPS (Port 443)
   try {
-    const addresses = await new Promise((resolve, reject) => {
-      dns.resolve4(domain, (err, addrs) => err ? reject(err) : resolve(addrs));
+    const res = await fetch(`https://1.1.1.1/dns-query?name=${encodeURIComponent(domain)}&type=A`, {
+      headers: { 'Accept': 'application/dns-json' }
     });
-    if (addresses && addresses.length > 0) {
-      cachedIP = addresses[0];
-      lastCacheTime = now;
-      return cachedIP;
-    }
-  } catch (e) {}
-
-  // 2. Try Cloudflare DNS-over-HTTPS (Port 443)
-  try {
-    const ip = await new Promise((resolve, reject) => {
-      const req = https.get(`https://1.1.1.1/dns-query?name=${encodeURIComponent(domain)}&type=A`, {
-        headers: { 'Accept': 'application/dns-json' },
-        timeout: 4000
-      }, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(data);
-            const record = json.Answer && json.Answer.find(a => a.type === 1);
-            if (record && record.data) resolve(record.data.trim());
-            else reject(new Error('No A record in Cloudflare DoH'));
-          } catch (err) { reject(err); }
-        });
-      });
-      req.on('error', reject);
-      req.on('timeout', () => { req.destroy(); reject(new Error('Cloudflare DoH timeout')); });
-    });
-    if (ip) {
-      cachedIP = ip;
-      lastCacheTime = now;
-      return cachedIP;
-    }
-  } catch (e) {}
-
-  // 3. Try Google DNS-over-HTTPS (Port 443)
-  try {
-    const ip = await new Promise((resolve, reject) => {
-      const req = https.get(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`, {
-        timeout: 4000
-      }, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(data);
-            const record = json.Answer && json.Answer.find(a => a.type === 1);
-            if (record && record.data) resolve(record.data.trim());
-            else reject(new Error('No A record in Google DoH'));
-          } catch (err) { reject(err); }
-        });
-      });
-      req.on('error', reject);
-      req.on('timeout', () => { req.destroy(); reject(new Error('Google DoH timeout')); });
-    });
-    if (ip) {
-      cachedIP = ip;
-      lastCacheTime = now;
-      return cachedIP;
-    }
-  } catch (e) {}
-
-  throw new Error(`Failed to resolve IP for ${domain}`);
-}
-
-// Node.js compliant custom DNS lookup
-function customDNSLookup(hostname, options, callback) {
-  let cb = callback;
-  let opts = options;
-  if (typeof options === 'function') {
-    cb = options;
-    opts = {};
-  }
-
-  resolveDomainIP(hostname)
-    .then((ip) => {
-      if (opts && opts.all) {
-        cb(null, [{ address: ip, family: 4 }]);
-      } else {
-        cb(null, ip, 4);
+    const json = await res.json();
+    if (json.Answer && json.Answer.length > 0) {
+      const record = json.Answer.find(a => a.type === 1);
+      if (record && record.data) {
+        cachedIP = record.data.trim();
+        lastCacheTime = now;
+        return cachedIP;
       }
-    })
-    .catch((err) => {
-      cb(err);
-    });
+    }
+  } catch (e) {}
+
+  // Method 2: Google DoH via HTTPS (Port 443)
+  try {
+    const res = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`);
+    const json = await res.json();
+    if (json.Answer && json.Answer.length > 0) {
+      const record = json.Answer.find(a => a.type === 1);
+      if (record && record.data) {
+        cachedIP = record.data.trim();
+        lastCacheTime = now;
+        return cachedIP;
+      }
+    }
+  } catch (e) {}
+
+  // Method 3: Azure Front Door Anycast Fallback IP
+  return '13.107.246.70';
 }
 
-function requestAzureAI(githubToken, modelName, messages) {
+function requestAzureAI(azureIP, githubToken, modelName, messages) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
       model: modelName,
@@ -132,12 +69,17 @@ function requestAzureAI(githubToken, modelName, messages) {
     const targetHost = 'models.inference.ai.azure.com';
 
     const options = {
-      hostname: targetHost,
+      hostname: azureIP, // Direct IP connection (bypasses Render OS DNS completely)
       port: 443,
       path: '/chat/completions',
       method: 'POST',
-      lookup: customDNSLookup, // System getaddrinfo ko bypass karke direct resolution karta hai
+      servername: targetHost, // SNI header for Azure Front Door
+      checkServerIdentity: (host, cert) => {
+        // Validates cert against domain targetHost, NOT raw IP address
+        return tls.checkServerIdentity(targetHost, cert);
+      },
       headers: {
+        'Host': targetHost, // HTTP Host header for Azure routing
         'Authorization': `Bearer ${githubToken}`,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(payload),
@@ -153,7 +95,7 @@ function requestAzureAI(githubToken, modelName, messages) {
           const parsed = JSON.parse(responseData);
           resolve({ statusCode: res.statusCode, body: parsed });
         } catch (e) {
-          reject(new Error(`Azure response parse error: ${responseData}`));
+          reject(new Error(`Azure non-JSON response (Status ${res.statusCode})`));
         }
       });
     });
@@ -172,6 +114,8 @@ app.post('/api/chat', async (req, res) => {
     return res.status(500).json({ error: "Render Environment variables me GITHUB_TOKEN missing hai." });
   }
 
+  const azureIP = await resolveAzureIP();
+
   const models = [
     "meta-llama-3.3-70b-instruct",
     "gpt-4o-mini",
@@ -182,7 +126,7 @@ app.post('/api/chat', async (req, res) => {
 
   for (const modelName of models) {
     try {
-      const result = await requestAzureAI(githubToken, modelName, messages);
+      const result = await requestAzureAI(azureIP, githubToken, modelName, messages);
       
       if (result.statusCode === 200 && result.body?.choices?.[0]?.message?.content) {
         return res.json({ reply: result.body.choices[0].message.content });
