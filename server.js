@@ -14,44 +14,51 @@ let cachedIPs = null;
 let lastCacheTime = 0;
 const CACHE_TTL = 10 * 60 * 1000; // 10 Minutes Cache
 
-// HTTPS DoH (Port 443) to resolve live Azure IPs
+// Robust DoH Resolver (Cloudflare domain -> Google domain -> Azure Anycast Fallback)
 async function resolveViaDoH(hostname) {
   const now = Date.now();
   if (cachedIPs && (now - lastCacheTime < CACHE_TTL)) {
     return cachedIPs;
   }
 
-  // 1. Cloudflare DoH (HTTPS)
+  // 1. Cloudflare DoH using proper domain (prevents IP SSL cert rejection)
   try {
-    const res = await fetch(`https://1.1.1.1/dns-query?name=${encodeURIComponent(hostname)}&type=A`, {
+    const res = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=A`, {
       headers: { 'Accept': 'application/dns-json' }
     });
-    const data = await res.json();
-    if (data.Answer && data.Answer.length > 0) {
-      const aRecords = data.Answer.filter(a => a.type === 1 && a.data).map(a => a.data.trim());
-      if (aRecords.length > 0) {
-        cachedIPs = aRecords;
-        lastCacheTime = now;
-        return cachedIPs;
+    if (res.ok) {
+      const data = await res.json();
+      if (data.Answer && data.Answer.length > 0) {
+        const aRecords = data.Answer.filter(a => a.type === 1 && a.data).map(a => a.data.trim());
+        if (aRecords.length > 0) {
+          cachedIPs = aRecords;
+          lastCacheTime = now;
+          return cachedIPs;
+        }
       }
     }
   } catch (e) {}
 
-  // 2. Google DoH (HTTPS)
+  // 2. Google DoH using proper domain
   try {
     const res = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=A`);
-    const data = await res.json();
-    if (data.Answer && data.Answer.length > 0) {
-      const aRecords = data.Answer.filter(a => a.type === 1 && a.data).map(a => a.data.trim());
-      if (aRecords.length > 0) {
-        cachedIPs = aRecords;
-        lastCacheTime = now;
-        return cachedIPs;
+    if (res.ok) {
+      const data = await res.json();
+      if (data.Answer && data.Answer.length > 0) {
+        const aRecords = data.Answer.filter(a => a.type === 1 && a.data).map(a => a.data.trim());
+        if (aRecords.length > 0) {
+          cachedIPs = aRecords;
+          lastCacheTime = now;
+          return cachedIPs;
+        }
       }
     }
   } catch (e) {}
 
-  throw new Error(`DoH lookup failed for ${hostname}`);
+  // 3. Fallback Azure Front Door Anycast IPs (Ensures resolution never fails)
+  cachedIPs = ['13.107.246.70', '13.107.213.70'];
+  lastCacheTime = now;
+  return cachedIPs;
 }
 
 // Node.js compliant custom DNS lookup
@@ -71,8 +78,13 @@ function customDNSLookup(hostname, options, callback) {
         cb(null, ips[0], 4);
       }
     })
-    .catch((err) => {
-      cb(err);
+    .catch(() => {
+      // Hard fallback
+      if (opts && opts.all) {
+        cb(null, [{ address: '13.107.246.70', family: 4 }]);
+      } else {
+        cb(null, '13.107.246.70', 4);
+      }
     });
 }
 
@@ -87,12 +99,14 @@ function requestAzureAI(githubToken, modelName, messages) {
     const targetHost = 'models.inference.ai.azure.com';
 
     const options = {
-      hostname: targetHost, // Target domain for SSL Certificate validation
+      hostname: targetHost,
       port: 443,
       path: '/chat/completions',
       method: 'POST',
-      lookup: customDNSLookup, // HTTPS DoH bypasses Render OS DNS
+      servername: targetHost, // Passes TLS SNI for Azure Front Door
+      lookup: customDNSLookup,
       headers: {
+        'Host': targetHost,
         'Authorization': `Bearer ${githubToken}`,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(payload),
