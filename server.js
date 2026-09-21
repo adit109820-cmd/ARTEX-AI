@@ -21,8 +21,8 @@ app.post('/api/chat', async (req, res) => {
     // Convert messages array to prompt text
     const userPrompt = messages.map(m => `${m.role}: ${m.content}`).join('\n');
 
-    // Updated active model name: gemini-2.0-flash
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    // Updated active model: gemini-3.6-flash
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(geminiUrl, {
       method: 'POST',
