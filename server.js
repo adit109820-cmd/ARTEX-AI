@@ -9,7 +9,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Sleep function for smooth retry backoff
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 app.post('/api/chat', async (req, res) => {
@@ -25,18 +24,18 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: "Invalid messages format." });
     }
 
-    // Convert chat messages to proper native Gemini JSON format
     const contents = messages.map(m => ({
       role: (m.role === 'assistant' || m.role === 'ai' || m.role === 'model') ? 'model' : 'user',
       parts: [{ text: m.content || m.text || '' }]
     }));
 
-    // High availability active models
+    // Active & universally accessible Gemini models (Removed deprecated gemini-2.5-pro)
     const models = [
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-8b',
       'gemini-2.5-flash',
       'gemini-2.5-flash-lite',
-      'gemini-flash-latest',
-      'gemini-2.5-pro'
+      'gemini-flash-latest'
     ];
 
     let lastError = "Server busy";
@@ -58,12 +57,11 @@ app.post('/api/chat', async (req, res) => {
           return res.json({ reply });
         } else {
           lastError = data.error?.message || `Status ${response.status}`;
-          // Pause briefly before trying the backup model
-          await sleep(800);
+          await sleep(500);
         }
       } catch (err) {
         lastError = err.message;
-        await sleep(800);
+        await sleep(500);
       }
     }
 
